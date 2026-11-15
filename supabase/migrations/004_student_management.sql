@@ -1,4 +1,19 @@
 -- Smart Minds Phase 3B: Student records
+-- Ensure streams has the composite key needed to enforce same-school student placement.
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'streams_school_id_unique'
+      and conrelid = 'public.streams'::regclass
+  ) then
+    alter table public.streams
+      add constraint streams_school_id_unique unique (school_id, id);
+  end if;
+end
+$$;
+
 create table if not exists public.students (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
