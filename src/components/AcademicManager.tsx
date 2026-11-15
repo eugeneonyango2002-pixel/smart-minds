@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Plus, RefreshCw, CalendarDays, BookOpen, Layers3, Users, XCircle, CheckCircle2 } from 'lucide-react'
+import { Plus, RefreshCw, BookOpen, XCircle, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type School = { id: string; name: string; status: string }
