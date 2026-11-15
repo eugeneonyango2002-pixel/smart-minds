@@ -143,3 +143,32 @@ footer span{display:none}
   .sidebar.drawer-open .sidebar-bottom button.nav{display:flex!important;visibility:visible!important;opacity:1!important;width:100%!important;min-height:48px!important;height:48px!important;flex:0 0 48px!important;justify-content:flex-start!important;padding:0 14px!important;margin:0!important;background:#ffffff18!important;color:#ffffff!important;font-size:13px!important;font-weight:700!important;gap:12px!important}
   .sidebar.drawer-open .sidebar-bottom button.nav svg{display:block!important;width:19px!important;height:19px!important;flex-shrink:0!important}
 }
+
+
+/* Print the learner report card without hiding its contents. */
+@media print {
+  body * { visibility: hidden !important; }
+  #learner-report-card,
+  #learner-report-card * { visibility: visible !important; }
+  #learner-report-card {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  #learner-report-card button,
+  #learner-report-card .secondary { display: none !important; }
+  #learner-report-card .table-wrap { overflow: visible !important; }
+  #learner-report-card table { width: 100% !important; min-width: 0 !important; }
+  #learner-report-card th,
+  #learner-report-card td { font-size: 9pt !important; padding: 7px !important; }
+  #learner-report-card .stats { grid-template-columns: repeat(3, 1fr) !important; }
+  #learner-report-card .panel { break-inside: avoid; box-shadow: none !important; }
+}
