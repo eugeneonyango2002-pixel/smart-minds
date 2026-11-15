@@ -8,7 +8,7 @@ type Entry = { id: string; academic_year_id: string; term_id: string | null; cla
 
 const days = [{id:1,name:'Monday'},{id:2,name:'Tuesday'},{id:3,name:'Wednesday'},{id:4,name:'Thursday'},{id:5,name:'Friday'}]
 const blank = { academic_year_id:'', term_id:'', class_id:'', stream_id:'', subject_id:'', teacher_id:'', day_of_week:'1', start_time:'08:00', end_time:'08:40', room:'', lesson_notes:'' }
-const staffName = (s: Row) => [s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' ')
+const staffName = (s: Partial<Row>) => [s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' ')
 
 export default function TimetableManager({ schools }: { schools: School[] }) {
   const [schoolId,setSchoolId] = useState('')
