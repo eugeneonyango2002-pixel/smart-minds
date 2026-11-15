@@ -48,7 +48,7 @@ export default function App() {
   const [busy, setBusy] = useState('')
   const [invitationCode, setInvitationCode] = useState('')
   const [claimingInvitation, setClaimingInvitation] = useState(false)
-  const [staffAccount, setStaffAccount] = useState<{ role: string } | null>(null)
+  const [staffAccount, setStaffAccount] = useState<{ role: string; school_id: string; staff_id: string } | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false) })
@@ -59,6 +59,23 @@ export default function App() {
   useEffect(() => {
     if (session) void loadSchools()
     else { setAdmin(false); setSchools([]) }
+  }, [session])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadStaffAccount() {
+      setStaffAccount(null)
+      if (!session) return
+      const { data, error } = await supabase
+        .from('staff_login_accounts')
+        .select('role, school_id, staff_id')
+        .eq('auth_user_id', session.user.id)
+        .eq('status', 'active')
+        .maybeSingle()
+      if (!cancelled && !error && data) setStaffAccount(data)
+    }
+    void loadStaffAccount()
+    return () => { cancelled = true }
   }, [session])
 
   async function loadSchools() {
@@ -92,7 +109,7 @@ export default function App() {
     if (error) setError(error.message)
     else {
       const account = data as { role?: string }
-      setStaffAccount({ role: account.role || 'staff' })
+      setStaffAccount({ role: account.role || 'staff', school_id: String((data as { school_id?: string }).school_id || ''), staff_id: String((data as { staff_id?: string }).staff_id || '') })
       setInvitationCode('')
       setNotice('Your staff account has been linked successfully. Your role is ' + (account.role || 'staff').replace(/_/g, ' ') + '.')
     }
