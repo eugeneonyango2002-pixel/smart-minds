@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { BarChart3, Download, Printer, RefreshCw, Wallet, XCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
-type School = { id: string; name: string }
+type School = { id: string; name: string; motto?: string | null; logo_url?: string | null }
 type Student = { id: string; class_id: string | null }
 type ClassRow = { id: string; name: string }
 type Payment = { id: string; student_id: string; amount_kes: number; payment_method: string; payment_date: string; receipt_number: string | null; transaction_reference: string | null }
@@ -65,6 +65,7 @@ export default function FeeReports({ schools }: { schools: School[] }) {
 
   const filtered = useMemo(() => payments.filter(p => p.payment_date >= startDate && p.payment_date <= endDate), [payments, startDate, endDate])
   const total = filtered.reduce((sum, p) => sum + Number(p.amount_kes), 0)
+  const selectedSchool = schools.find(s => s.id === schoolId)
   const classTotals = useMemo(() => {
     const groups = new Map<string, { name: string; amount: number; count: number }>()
     for (const p of filtered) {
@@ -95,7 +96,8 @@ export default function FeeReports({ schools }: { schools: School[] }) {
 
   function exportCsv() {
     const rows = [
-      ['Smart Minds Fee Collection Report', ''],
+      [`${selectedSchool?.name || 'Smart Minds'} Fee Collection Report`, ''],
+      ...(selectedSchool?.motto ? [['School motto', selectedSchool.motto]] : [] ),
       ['From', startDate], ['To', endDate], [],
       ['Collection summary', ''],
       ['Total collected (KES)', total.toFixed(2)], ['Number of payments', String(filtered.length)], [],
@@ -123,6 +125,7 @@ export default function FeeReports({ schools }: { schools: School[] }) {
       <label>To<input type="date" value={endDate} min={startDate} onChange={e => { setPeriod('custom'); setEndDate(e.target.value) }} /></label>
       <div className="report-actions"><button className="secondary" onClick={exportCsv} disabled={!filtered.length}><Download /> Export CSV</button><button className="primary" onClick={() => window.print()}><Printer /> Print report</button></div>
     </div>
+    <div className="report-brand" style={{ display:'flex', alignItems:'center', gap:14, margin:'18px 0' }}>{selectedSchool?.logo_url&&<img src={selectedSchool.logo_url} alt={selectedSchool.name+' logo'} style={{ width:68, height:68, objectFit:'contain' }}/>}<div><h2 style={{ margin:0 }}>{selectedSchool?.name || 'Smart Minds'}</h2>{selectedSchool?.motto&&<p className="muted" style={{ margin:'5px 0 0' }}>{selectedSchool.motto}</p>}</div></div>
     <div className="report-heading"><div><p className="kicker">COLLECTION PERIOD</p><h3>{startDate} to {endDate}</h3></div><span>{busy ? 'Updating…' : filtered.length + ' payments'}</span></div>
     <div className="stats fees-stats report-stats">
       <article className="panel"><Wallet /><span>Total collected</span><b>{money(total)}</b></article>
