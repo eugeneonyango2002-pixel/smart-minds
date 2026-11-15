@@ -72,3 +72,30 @@ footer span{display:none}
   .statement-meta{grid-template-columns:repeat(3,1fr)}
   .statement-totals{grid-template-columns:repeat(3,1fr);background:#f5f8fc!important;print-color-adjust:exact}
 }
+
+
+/* Payment receipt preview and printing */
+.receipt-overlay{position:fixed;inset:0;z-index:60;background:#102f5688;display:grid;place-items:center;padding:18px;overflow:auto}
+.receipt-paper{width:min(100%,680px);background:#fff;border-radius:14px;padding:28px;color:#24364c;box-shadow:0 18px 60px #102f5640}
+.receipt-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:2px solid #e8edf3;padding-bottom:16px}
+.receipt-head h2{font-size:20px;margin:0 0 5px}
+.receipt-head p:last-child{font-size:12px;color:#8290a2;margin:0}
+.receipt-number{display:flex;justify-content:space-between;gap:12px;padding:16px 0;border-bottom:1px solid #e8edf3}
+.receipt-number span,.receipt-details span,.receipt-amount span{font-size:11px;color:#8290a2}
+.receipt-number b{font:800 16px Manrope;color:#155aa2}
+.receipt-details{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:22px 0}
+.receipt-details div{display:grid;gap:5px}
+.receipt-details b{font-size:13px}
+.receipt-amount{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f3f7fb;border-radius:10px;padding:18px}
+.receipt-amount strong{font:800 22px Manrope;color:#155aa2}
+.receipt-thanks{font-size:11px;color:#718096;margin:18px 0}
+.receipt-actions{display:flex;justify-content:flex-end}
+@media(max-width:600px){.receipt-paper{padding:17px}.receipt-details{gap:14px}.receipt-head h2{font-size:17px}.receipt-amount strong{font-size:18px}}
+@media print{
+  body *{visibility:hidden!important}
+  .receipt-overlay,.receipt-overlay *{visibility:visible!important}
+  .receipt-overlay{position:absolute!important;inset:0!important;display:block!important;background:#fff!important;padding:0!important;overflow:visible!important}
+  .receipt-paper{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+  .receipt-paper .no-print{display:none!important}
+  .receipt-number,.receipt-details,.receipt-amount{break-inside:avoid}
+}
