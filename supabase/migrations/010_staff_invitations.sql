@@ -9,7 +9,7 @@ create table if not exists public.staff_login_invitations (
   email text not null,
   role text not null,
   token_hash text not null unique,
-  expires_at timestamptz not null default (now() + interval '7 days'),
+  expires_at timestamptz not null default (now() + interval '1 hour'),
   accepted_at timestamptz,
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -90,7 +90,7 @@ begin
     (school_id, staff_id, email, role, token_hash, expires_at, created_by)
   values
     (v_staff.school_id, v_staff.id, lower(btrim(v_staff.email)), p_role,
-     md5(v_token), now() + interval '7 days', auth.uid());
+     md5(v_token), now() + interval '1 hour', auth.uid());
 
   return v_token;
 end;
