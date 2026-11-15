@@ -46,6 +46,9 @@ export default function App() {
   const [address, setAddress] = useState('')
   const [registration, setRegistration] = useState('')
   const [busy, setBusy] = useState('')
+  const [invitationCode, setInvitationCode] = useState('')
+  const [claimingInvitation, setClaimingInvitation] = useState(false)
+  const [staffAccount, setStaffAccount] = useState<{ role: string } | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false) })
@@ -78,6 +81,22 @@ export default function App() {
       if (error) setError(error.message)
       else setNotice('Account created. Check your email if confirmation is enabled, then sign in.')
     }
+  }
+
+  async function claimInvitation(e: FormEvent) {
+    e.preventDefault()
+    setError(''); setNotice('')
+    if (!invitationCode.trim()) { setError('Enter the invitation code shared by your school.'); return }
+    setClaimingInvitation(true)
+    const { data, error } = await supabase.rpc('claim_staff_invitation', { p_token: invitationCode.trim() })
+    if (error) setError(error.message)
+    else {
+      const account = data as { role?: string }
+      setStaffAccount({ role: account.role || 'staff' })
+      setInvitationCode('')
+      setNotice('Your staff account has been linked successfully. Your role is ' + (account.role || 'staff').replace(/_/g, ' ') + '.')
+    }
+    setClaimingInvitation(false)
   }
 
   async function apply(e: FormEvent) {
@@ -169,7 +188,15 @@ export default function App() {
           <section className="panel"><div className="panel-heading"><h2>School applications</h2><span>{schools.length} records</span></div>
             {schools.length === 0 ? <div className="empty"><Building2 /><h3>No applications yet</h3><p>New school applications will appear here for review.</p><button className="secondary" onClick={() => setPage('apply')}>Create a test application</button></div> : <div className="table-wrap"><table><thead><tr><th>School</th><th>Applicant</th><th>County</th><th>Reference</th><th>Status</th><th>Review</th></tr></thead><tbody>{schools.map(s => <tr key={s.id}><td><b>{s.name}</b><small>{s.school_type}</small></td><td>{s.applicant_name || '—'}<small>{s.contact_email}</small></td><td>{s.county || '—'}</td><td><code>{s.application_number}</code></td><td><span className={'status ' + s.status}>{s.status}</span></td><td>{s.status === 'pending' ? <div className="actions"><button disabled={busy === s.id} onClick={() => void review(s.id, 'approve')}>Approve</button><button disabled={busy === s.id} onClick={() => void review(s.id, 'reject')}>Reject</button></div> : '—'}</td></tr>)}</tbody></table></div>}
           </section>
-        </> : <section className="panel empty"><Building2 /><h3>Welcome to your school workspace</h3><p>Apply to register a school or ask your school administrator for an invitation.</p><button className="primary" onClick={() => setPage('apply')}>Register a school <ArrowRight /></button></section>}
+        </> : <section className="panel">
+          <div className="empty"><Building2 /><h3>Welcome to Smart Minds</h3><p>Use the invitation code from your school to link your staff account. Make sure you are signed in with the email address registered by your school.</p></div>
+          {staffAccount ? <div className="notice"><ShieldCheck /> Staff account linked. Assigned role: <b>{staffAccount.role.replace(/_/g, ' ')}</b>. Your school workspace access will be enabled as the role-based modules are completed.</div> : <form className="school-form" onSubmit={claimInvitation}>
+            <label className="wide">Staff invitation code<input required value={invitationCode} onChange={e => setInvitationCode(e.target.value)} placeholder="Paste your one-time invitation code" autoComplete="off" /></label>
+            <button className="primary wide" type="submit" disabled={claimingInvitation}>{claimingInvitation ? 'Verifying code…' : 'Activate staff account'} <ArrowRight /></button>
+          </form>}
+          <p className="muted">Invitation codes expire one hour after they are created and can only be used once.</p>
+          <button className="secondary" onClick={() => setPage('apply')}>Register a school <ArrowRight /></button>
+        </section>}
       </div>}
       <footer>© {new Date().getFullYear()} Smart Minds <span>One platform. Many possibilities.</span></footer>
     </main>
