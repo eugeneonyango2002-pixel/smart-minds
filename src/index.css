@@ -99,3 +99,35 @@ footer span{display:none}
   .receipt-paper .no-print{display:none!important}
   .receipt-number,.receipt-details,.receipt-amount{break-inside:avoid}
 }
+
+
+/* Fee collection reports */
+.report-filters{display:grid;grid-template-columns:repeat(3,minmax(130px,1fr)) auto;align-items:end;gap:12px;padding:16px;background:#f8fafd;border:1px solid #e8edf3;border-radius:10px;margin:12px 0 22px}
+.report-filters label{display:grid;gap:7px;font-size:11px;font-weight:700;color:#34445a}
+.report-filters input,.report-filters select{width:100%;min-width:0;border:1px solid #dce4ee;border-radius:8px;padding:11px;background:#fff;font:12px 'DM Sans'}
+.report-actions{display:flex;gap:8px;flex-wrap:wrap}
+.report-heading{display:flex;justify-content:space-between;align-items:center;margin:18px 0 12px}
+.report-heading h3{font:700 16px Manrope;margin:0}
+.report-heading>span{font-size:11px;color:#8290a2}
+.report-stats{margin-bottom:16px}
+.report-stats .panel{min-width:0}
+.report-stats b{font-size:clamp(15px,2vw,22px);overflow-wrap:anywhere}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.report-section{min-width:0}
+.report-section .panel-heading h2{font-size:16px}
+.report-section table{min-width:0}
+.report-section td,.report-section th{padding:11px 8px}
+.daily-report{margin-bottom:14px}
+.report-footnote{font-size:10px;line-height:1.6;color:#8290a2}
+@media(max-width:850px){.report-filters{grid-template-columns:1fr 1fr}.report-actions{grid-column:1/-1}}
+@media(max-width:600px){.report-filters{grid-template-columns:1fr}.report-actions{grid-column:auto}.report-actions button{flex:1}.report-grid{grid-template-columns:1fr}.report-heading{align-items:flex-start;gap:8px;flex-direction:column}.report-stats{grid-template-columns:1fr 1fr}.report-stats .panel:last-child{grid-column:1/-1}}
+@media print{
+  body *{visibility:hidden!important}
+  .fee-reports-panel,.fee-reports-panel *{visibility:visible!important}
+  .fee-reports-panel{position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important}
+  .fee-reports-panel .no-print,.fee-reports-panel .report-filters,.fee-reports-panel .report-footnote{display:none!important}
+  .fee-reports-panel .report-grid{grid-template-columns:1fr 1fr}
+  .fee-reports-panel table{min-width:0!important;width:100%!important}
+  .fee-reports-panel th,.fee-reports-panel td{font-size:8pt!important;padding:6px!important}
+  .fee-reports-panel .panel{break-inside:avoid;box-shadow:none!important}
+}
