@@ -16,6 +16,14 @@ function grade(score: number, max: number) {
   if (percent >= 40) return 'AE'
   return 'BE'
 }
+
+function autoRemark(score: number, max: number) {
+  const level = grade(score, max)
+  if (level === 'EE') return 'Excellent achievement. Demonstrates strong understanding and applies learning confidently. Keep extending this excellent work.'
+  if (level === 'ME') return 'Good progress. Demonstrates the expected understanding of the learning area. Keep practising to strengthen and extend these skills.'
+  if (level === 'AE') return 'Making progress but needs more practice to meet the expected outcomes. Focus on the areas covered and seek guidance when needed.'
+  return 'Needs additional support and regular practice to build understanding of the learning outcomes. Work closely with the teacher on the identified areas.'
+}
 const fullName = (s: Learner) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(' ')
 
 export default function ExaminationsManager({ schools }: { schools: School[] }) {
@@ -108,7 +116,8 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
       return
     }
     setBusy(true); setError(''); setNotice('')
-    const payload = { school_id: schoolId, examination_id: selectedExam.id, student_id: mark.student_id, subject_id: mark.subject_id, score, remarks: mark.remarks.trim() || null }
+    const generatedRemark = autoRemark(score, Number(selectedExam.max_score))
+    const payload = { school_id: schoolId, examination_id: selectedExam.id, student_id: mark.student_id, subject_id: mark.subject_id, score, remarks: mark.remarks.trim() || generatedRemark }
     const query = supabase.from('exam_results')
     const response = existingMark
       ? await query.update({ score, remarks: payload.remarks }).eq('id', existingMark.id).eq('school_id',schoolId)
@@ -160,11 +169,11 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
           <label>Learner *<select required value={mark.student_id} onChange={e => setMark(v => ({...v,student_id:e.target.value}))}><option value="">Select learner</option>{examStudents.map(s => <option key={s.id} value={s.id}>{s.admission_number} · {fullName(s)}</option>)}</select></label>
           <label>Subject *<select required value={mark.subject_id} onChange={e => setMark(v => ({...v,subject_id:e.target.value}))}><option value="">Select subject</option>{subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
           <label>Score *<input required type="number" min="0" max={selectedExam.max_score} step="0.01" value={mark.score} onChange={e => setMark(v => ({...v,score:e.target.value}))} placeholder={'0–' + selectedExam.max_score}/></label>
-          <label>Teacher remarks<input value={mark.remarks} onChange={e => setMark(v => ({...v,remarks:e.target.value}))} placeholder="Optional comment"/></label>
+          <label>Teacher remarks (optional override)<input value={mark.remarks} onChange={e => setMark(v => ({...v,remarks:e.target.value}))} placeholder="Leave blank for automatic CBC feedback"/></label>
           <button className="primary wide" disabled={busy || !examStudents.length || !subjects.length}>{busy ? 'Saving…' : existingMark ? 'Update mark' : 'Save mark'}</button>
         </form>
         <h3>Marks recorded ({results.length})</h3>
-        {results.length === 0 ? <p className="muted">No marks have been entered for this examination.</p> : <div className="table-wrap"><table><thead><tr><th>Learner</th><th>Subject</th><th>Score</th><th>CBC achievement level</th><th>Remarks</th></tr></thead><tbody>{results.map(r => { const s = students.find(x => x.id === r.student_id); const sub = subjects.find(x => x.id === r.subject_id); return <tr key={r.id}><td>{s ? fullName(s) : 'Learner'}</td><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || '—'}</td></tr> })}</tbody></table></div>}
+        {results.length === 0 ? <p className="muted">No marks have been entered for this examination.</p> : <div className="table-wrap"><table><thead><tr><th>Learner</th><th>Subject</th><th>Score</th><th>CBC achievement level</th><th>Remarks</th></tr></thead><tbody>{results.map(r => { const s = students.find(x => x.id === r.student_id); const sub = subjects.find(x => x.id === r.subject_id); return <tr key={r.id}><td>{s ? fullName(s) : 'Learner'}</td><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td></tr> })}</tbody></table></div>}
       </>}
     </>}
     {tab === 'reports' && <>
@@ -173,7 +182,7 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
       {student && selectedExam && <div className="panel" id="learner-report-card">
         <div className="panel-heading"><div><p className="kicker">SMART MINDS · LEARNER REPORT</p><h2>{fullName(student)}</h2><p className="muted">{student.admission_number} · {classes.find(c => c.id === student.class_id)?.name || ''}</p></div><button className="secondary" onClick={() => window.print()}><Printer/> Print report card</button></div>
         <h3>{selectedExam.name}</h3>
-        <div className="table-wrap"><table><thead><tr><th>Learning area</th><th>Score</th><th>Percentage</th><th>CBC achievement level</th><th>Teacher remarks</th></tr></thead><tbody>{reportResults.map(r => { const sub = subjects.find(x => x.id === r.subject_id); const pct = Number(r.score) / Number(selectedExam.max_score) * 100; return <tr key={r.id}><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{pct.toFixed(1)}%</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || '—'}</td></tr> })}</tbody></table></div>
+        <div className="table-wrap"><table><thead><tr><th>Learning area</th><th>Score</th><th>Percentage</th><th>CBC achievement level</th><th>Teacher remarks</th></tr></thead><tbody>{reportResults.map(r => { const sub = subjects.find(x => x.id === r.subject_id); const pct = Number(r.score) / Number(selectedExam.max_score) * 100; return <tr key={r.id}><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{pct.toFixed(1)}%</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td></tr> })}</tbody></table></div>
         <div className="stats"><article className="panel"><span>Total score</span><b>{total.toFixed(1)}</b></article><article className="panel"><span>Average</span><b>{average.toFixed(1)}%</b></article><article className="panel"><span>Overall CBC level</span><b>{reportResults.length ? grade(average,100) : '—'}</b></article></div>
         {reportResults.length === 0 && <p className="muted">No subject marks have been recorded for this learner yet.</p>}
       </div>}
