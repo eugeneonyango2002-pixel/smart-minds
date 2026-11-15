@@ -10,6 +10,394 @@ import FeeStatements from './components/FeeStatements'
 import FeeReports from './components/FeeReports'
 import StaffManager from './components/StaffManager'
 
+const SUB_COUNTIES_BY_COUNTY: Record<string, string[]> = {
+  "Uasin Gishu": [
+    "Ainabkoi",
+    "Kapseret",
+    "Kesses",
+    "Moiben",
+    "Soy",
+    "Turbo"
+  ],
+  "Kericho": [
+    "Ainamoi",
+    "Belgut",
+    "Buret",
+    "Kipkelion East",
+    "Kipkelion West",
+    "Sigowet/Soin"
+  ],
+  "Nandi": [
+    "Aldai",
+    "Chesumei",
+    "Emgwen",
+    "Mosop",
+    "Nandi Hills",
+    "Tinderet"
+  ],
+  "Siaya": [
+    "Alego Usonga",
+    "Bondo",
+    "Gem",
+    "Rarieda",
+    "Ugenya",
+    "Ugunja"
+  ],
+  "Migori": [
+    "Awendo",
+    "Kuria East",
+    "Kuria West",
+    "Nyatike",
+    "Rongo",
+    "Suna East",
+    "Suna West",
+    "Uriri"
+  ],
+  "Nakuru": [
+    "Bahati",
+    "Gilgil",
+    "Kuresoi North",
+    "Kuresoi South",
+    "Molo",
+    "Naivasha",
+    "Nakuru Town East",
+    "Nakuru Town West",
+    "Njoro",
+    "Rongai",
+    "Subukia"
+  ],
+  "Garissa": [
+    "Balambala",
+    "Dadaab",
+    "Dujis",
+    "Fafi",
+    "Ijara",
+    "Lagdera"
+  ],
+  "Mandera": [
+    "Banissa",
+    "Lafey",
+    "Mandera East",
+    "Mandera North",
+    "Mandera South",
+    "Mandera West"
+  ],
+  "Baringo": [
+    "Baringo Central",
+    "Baringo North",
+    "Baringo South",
+    "Eldama Ravine",
+    "Mogotio",
+    "Tiaty"
+  ],
+  "Kisii": [
+    "Bobasi",
+    "Bomachoge Borabu",
+    "Bomachoge Chache",
+    "Bonchari",
+    "Kitutu Chache North",
+    "Kitutu Chache South",
+    "Nyaribari Chache",
+    "Nyaribari Masaba",
+    "South Mugirango"
+  ],
+  "Bomet": [
+    "Bomet Central",
+    "Bomet East",
+    "Chepalungu",
+    "Konoin",
+    "Sotik"
+  ],
+  "Nyamira": [
+    "Borabu",
+    "Kitutu Masaba",
+    "North Mugirango",
+    "West Mugirango"
+  ],
+  "Busia": [
+    "Budalangi",
+    "Butula",
+    "Funyula",
+    "Matayos",
+    "Nambale",
+    "Teso North",
+    "Teso South"
+  ],
+  "Bungoma": [
+    "Bumula",
+    "Kabuchai",
+    "Kanduyi",
+    "Kimilili",
+    "Mt. Elgon",
+    "Sirisia",
+    "Tongaren",
+    "Webuye East",
+    "Webuye West"
+  ],
+  "Tana River": [
+    "Bura",
+    "Galole",
+    "Garsen"
+  ],
+  "Kakamega": [
+    "Butere",
+    "Ikolomani",
+    "Khwisero",
+    "Likuyani",
+    "Lugari",
+    "Lurambi",
+    "Malava",
+    "Matungu",
+    "Mumias East",
+    "Mumias West",
+    "Navakholo",
+    "Shinyalu"
+  ],
+  "Meru": [
+    "Buuri",
+    "Cental Imenti",
+    "Igembe Central",
+    "Igembe North",
+    "Igembe South",
+    "North Imenti",
+    "South Imenti",
+    "Tigania East",
+    "Tigania West"
+  ],
+  "Mombasa": [
+    "Changamwe",
+    "Jomvu",
+    "Kisauni",
+    "Likoni",
+    "Mvita",
+    "Nyali"
+  ],
+  "Trans Nzoia": [
+    "Cherangany",
+    "Endebess",
+    "Kiminini",
+    "Kwanza",
+    "Saboti"
+  ],
+  "Nairobi": [
+    "Dagoretti",
+    "Embakasi Central",
+    "Embakasi East",
+    "Embakasi North",
+    "Embakasi South",
+    "Embakasi West",
+    "Kamukunji",
+    "Kasarani",
+    "Kibra",
+    "Kilimani",
+    "Langata",
+    "Makadara",
+    "Mathare",
+    "Roysambu",
+    "Ruaraka",
+    "Starehe",
+    "Westlands"
+  ],
+  "Wajir": [
+    "Eldas",
+    "Tarbaj",
+    "Wajir East",
+    "Wajir North",
+    "Wajir South",
+    "Wajir West"
+  ],
+  "Vihiga": [
+    "Emuhaya",
+    "Hamisi",
+    "Luanda",
+    "Sabatia",
+    "Vihiga"
+  ],
+  "Narok": [
+    "Emurua Dikirr",
+    "Kilgoris",
+    "Narok East",
+    "Narok North",
+    "Narok South",
+    "Narok West"
+  ],
+  "Embu": [
+    "Gachoka",
+    "Manyatta",
+    "Runyenjes",
+    "Siakago"
+  ],
+  "Kilifi": [
+    "Ganze",
+    "Kaloleni",
+    "Kilifi North",
+    "Kilifi South",
+    "Magarini",
+    "Malindi",
+    "Rabai"
+  ],
+  "Murang'a": [
+    "Gatanga",
+    "Kandara",
+    "Kangema",
+    "Kigumo",
+    "Kiharu",
+    "Maragwa",
+    "Mathioya"
+  ],
+  "Kiambu": [
+    "Gatundu North",
+    "Gatundu South",
+    "Githunguri",
+    "Juja",
+    "Kabete",
+    "Kiambaa",
+    "Kiambu",
+    "Kikuyu",
+    "Lari",
+    "Limuru",
+    "Ruiru",
+    "Thika Town"
+  ],
+  "Kirinyaga": [
+    "Gichugu",
+    "Kirinyaga Central",
+    "Mwea",
+    "Ndia"
+  ],
+  "Homa Bay": [
+    "Homa Bay",
+    "Kabondo Kasipul",
+    "Karachuonyo",
+    "Kasipul",
+    "Ndhiwa",
+    "Rangwe",
+    "Suba North",
+    "Suba South"
+  ],
+  "Isiolo": [
+    "Isiolo North",
+    "Isiolo South"
+  ],
+  "West Pokot": [
+    "Kacheliba",
+    "Kapenguria",
+    "Pokot South",
+    "Sigor"
+  ],
+  "Makueni": [
+    "Kaiti",
+    "Kibwezi East",
+    "Kibwezi West",
+    "Kilome",
+    "Makueni",
+    "Mbooni"
+  ],
+  "Kajiado": [
+    "Kajiado Central",
+    "Kajiado East",
+    "Kajiado North",
+    "Kajiado South",
+    "Kajiado West"
+  ],
+  "Machakos": [
+    "Kangundo",
+    "Kathiani",
+    "Machakos Town",
+    "Masinga",
+    "Matungulu",
+    "Mavoko",
+    "Mwala",
+    "Yatta"
+  ],
+  "Elgeyo-Marakwet": [
+    "Keiyo North",
+    "Keiyo South",
+    "Marakwet East",
+    "Marakwet West"
+  ],
+  "Nyeri": [
+    "Kieni",
+    "Mathira",
+    "Mukurweni",
+    "Nyeri Town",
+    "Othaya",
+    "Tetu"
+  ],
+  "Kwale": [
+    "Kinango",
+    "Lunga Lunga",
+    "Matuga",
+    "Msambweni"
+  ],
+  "Nyandarua": [
+    "Kinangop",
+    "Kipipiri",
+    "Ndaragwa",
+    "Ol Jorok",
+    "Ol Kalou"
+  ],
+  "Kisumu": [
+    "Kisumu Central",
+    "Kisumu East",
+    "Kisumu West",
+    "Muhoroni",
+    "Nyakach",
+    "Nyando",
+    "Seme"
+  ],
+  "Kitui": [
+    "Kitui Central",
+    "Kitui East",
+    "Kitui Rural",
+    "Kitui South",
+    "Kitui West",
+    "Mwingi East",
+    "Mwingi North",
+    "Mwingi West"
+  ],
+  "Laikipia": [
+    "Laikipia East",
+    "Laikipia North",
+    "Laikipia West"
+  ],
+  "Marsabit": [
+    "Laisamis",
+    "Moyale",
+    "North Horr",
+    "Saku"
+  ],
+  "Lamu": [
+    "Lamu East",
+    "Lamu West"
+  ],
+  "Turkana": [
+    "Loima",
+    "Turkana Central",
+    "Turkana East",
+    "Turkana North",
+    "Turkana South",
+    "Turkana West"
+  ],
+  "Tharaka-Nithi": [
+    "Maara",
+    "Nithi",
+    "Tharaka"
+  ],
+  "Taita Taveta": [
+    "Mwatate",
+    "Taveta",
+    "Voi",
+    "Wundanyi"
+  ],
+  "Samburu": [
+    "Samburu East",
+    "Samburu North",
+    "Samburu West"
+  ]
+}
+const KENYA_COUNTIES = Object.keys(SUB_COUNTIES_BY_COUNTY).sort((a, b) => a.localeCompare(b))
+
 type School = {
   id: string
   name: string
@@ -313,8 +701,8 @@ export default function App() {
           <label>Applicant full name *<input required value={applicant} onChange={e => setApplicant(e.target.value)} /></label>
           <label>Contact email *<input required type="email" value={contact} onChange={e => setContact(e.target.value)} /></label>
           <label>Phone number<input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+254…" /></label>
-          <label>County<input value={county} onChange={e => setCounty(e.target.value)} /></label>
-          <label>Sub-county<input value={subCounty} onChange={e => setSubCounty(e.target.value)} /></label>
+          <label>County *<select required value={county} onChange={e => { setCounty(e.target.value); setSubCounty('') }}><option value="">Select county</option>{KENYA_COUNTIES.map(name => <option key={name} value={name}>{name}</option>)}</select></label>
+          <label>Sub-county *<select required value={subCounty} onChange={e => setSubCounty(e.target.value)} disabled={!county}><option value="">Select sub-county</option>{(SUB_COUNTIES_BY_COUNTY[county] || []).map(name => <option key={name} value={name}>{name}</option>)}</select></label>
           <label>Registration number<input value={registration} onChange={e => setRegistration(e.target.value)} /></label>
           <label className="wide">Physical address<textarea rows={3} value={address} onChange={e => setAddress(e.target.value)} /></label>
           <button className="primary wide" type="submit">Submit application <ArrowRight /></button>
@@ -358,8 +746,8 @@ export default function App() {
                 <label>Applicant name<input value={schoolDraft.applicant_name} onChange={e => setSchoolDraft({ ...schoolDraft, applicant_name: e.target.value })} /></label>
                 <label>Contact email<input type="email" value={schoolDraft.contact_email} onChange={e => setSchoolDraft({ ...schoolDraft, contact_email: e.target.value })} /></label>
                 <label>Contact phone<input value={schoolDraft.contact_phone} onChange={e => setSchoolDraft({ ...schoolDraft, contact_phone: e.target.value })} /></label>
-                <label>County<input value={schoolDraft.county} onChange={e => setSchoolDraft({ ...schoolDraft, county: e.target.value })} /></label>
-                <label>Sub-county<input value={schoolDraft.sub_county} onChange={e => setSchoolDraft({ ...schoolDraft, sub_county: e.target.value })} /></label>
+                <label>County *<select required value={schoolDraft.county} onChange={e => setSchoolDraft({ ...schoolDraft, county: e.target.value, sub_county: '' })}><option value="">Select county</option>{KENYA_COUNTIES.map(name => <option key={name} value={name}>{name}</option>)}</select></label>
+                <label>Sub-county *<select required value={schoolDraft.sub_county} onChange={e => setSchoolDraft({ ...schoolDraft, sub_county: e.target.value })} disabled={!schoolDraft.county}><option value="">Select sub-county</option>{(SUB_COUNTIES_BY_COUNTY[schoolDraft.county] || []).map(name => <option key={name} value={name}>{name}</option>)}</select></label>
                 <label>Registration number<input value={schoolDraft.registration_number} onChange={e => setSchoolDraft({ ...schoolDraft, registration_number: e.target.value })} /></label>
                 <label className="wide">Physical address<textarea rows={3} value={schoolDraft.address} onChange={e => setSchoolDraft({ ...schoolDraft, address: e.target.value })} /></label>
                 <button className="primary wide" type="submit" disabled={busy === managedSchool.id}>{busy === managedSchool.id ? 'Saving…' : 'Save school details'}</button>
