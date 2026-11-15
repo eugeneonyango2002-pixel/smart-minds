@@ -19,6 +19,10 @@ type School = {
   applicant_name?: string | null
   contact_email?: string | null
   county?: string | null
+  sub_county?: string | null
+  contact_phone?: string | null
+  address?: string | null
+  registration_number?: string | null
   created_at?: string
 }
 
@@ -33,6 +37,9 @@ export default function App() {
   const [notice, setNotice] = useState('')
   const [admin, setAdmin] = useState(false)
   const [schools, setSchools] = useState<School[]>([])
+  const [managedSchool, setManagedSchool] = useState<School | null>(null)
+  const [editingSchool, setEditingSchool] = useState(false)
+  const [schoolDraft, setSchoolDraft] = useState({ name: '', school_type: 'primary_secondary', applicant_name: '', contact_email: '', contact_phone: '', county: '', sub_county: '', address: '', registration_number: '' })
   const [page, setPage] = useState<'dashboard' | 'apply' | 'academic' | 'students' | 'attendance' | 'fees' | 'fee-statements' | 'fee-reports' | 'staff'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const navigate = (nextPage: typeof page) => { setPage(nextPage); setSidebarOpen(false) }
@@ -166,6 +173,58 @@ export default function App() {
     await loadSchools(); setBusy('')
   }
 
+  function startSchoolEdit(s: School) {
+    setManagedSchool(s)
+    setSchoolDraft({
+      name: s.name || '',
+      school_type: s.school_type || 'primary_secondary',
+      applicant_name: s.applicant_name || '',
+      contact_email: s.contact_email || '',
+      contact_phone: s.contact_phone || '',
+      county: s.county || '',
+      sub_county: s.sub_county || '',
+      address: s.address || '',
+      registration_number: s.registration_number || '',
+    })
+    setEditingSchool(true)
+  }
+
+  async function saveSchoolEdit(e: FormEvent) {
+    e.preventDefault()
+    if (!managedSchool) return
+    setBusy(managedSchool.id); setError(''); setNotice('')
+    const { error } = await supabase.rpc('admin_update_school', {
+      p_school_id: managedSchool.id,
+      p_name: schoolDraft.name,
+      p_school_type: schoolDraft.school_type,
+      p_applicant_name: schoolDraft.applicant_name,
+      p_contact_email: schoolDraft.contact_email,
+      p_contact_phone: schoolDraft.contact_phone,
+      p_county: schoolDraft.county,
+      p_sub_county: schoolDraft.sub_county,
+      p_address: schoolDraft.address,
+      p_registration_number: schoolDraft.registration_number,
+    })
+    if (error) setError(error.message)
+    else { setNotice('School details updated successfully.'); setEditingSchool(false); setManagedSchool(null) }
+    await loadSchools()
+    setBusy('')
+  }
+
+  async function changeSchoolStatus(s: School, action: 'suspend' | 'activate') {
+    const confirmed = window.confirm(action === 'suspend'
+      ? 'Suspend ' + s.name + '? The school will be marked as suspended.'
+      : 'Reactivate ' + s.name + '? The school will return to approved status.')
+    if (!confirmed) return
+    setBusy(s.id); setError(''); setNotice('')
+    const { error } = await supabase.rpc(action === 'suspend' ? 'admin_suspend_school' : 'admin_activate_school', { p_school_id: s.id })
+    if (error) setError(error.message)
+    else setNotice(action === 'suspend' ? 'School suspended successfully.' : 'School activated successfully.')
+    await loadSchools()
+    if (managedSchool?.id === s.id) setManagedSchool({ ...s, status: action === 'suspend' ? 'suspended' : 'approved' })
+    setBusy('')
+  }
+
   if (!supabaseConfigured) return <main className="setup"><div className="panel setup-panel"><div className="logo"><GraduationCap /></div><p className="kicker">SMART MINDS · SETUP</p><h1>Connect your Supabase project</h1><p>Your application files are ready. The next step is to add your Supabase project URL and publishable (anon) key to GitHub Actions secrets.</p><div className="notice"><ShieldCheck /> Never put your Supabase service-role key in the frontend or GitHub source files.</div></div></main>
   if (loading) return <main className="setup">Loading Smart Minds…</main>
 
@@ -217,8 +276,25 @@ export default function App() {
         <div className="welcome"><div><p className="kicker">{admin ? 'CENTRAL ADMINISTRATION' : 'SCHOOL ACCOUNT'}</p><h2>{admin ? 'Platform overview' : 'Welcome to Smart Minds'}</h2><p className="muted">{admin ? 'Review applications and manage registered schools.' : 'Your school applications and memberships will appear here.'}</p></div><button className="secondary" onClick={() => void loadSchools()}><RefreshCw /> Refresh</button></div>
         {admin ? <>
           <div className="stats"><article className="panel"><Building2 /><span>Total schools</span><b>{schools.length}</b></article><article className="panel"><Activity /><span>Pending applications</span><b>{pending}</b></article><article className="panel"><CheckCircle2 /><span>Approved schools</span><b>{approved}</b></article><article className="panel"><Users /><span>Platform role</span><b className="role">Super Admin</b></article></div>
-          <section className="panel"><div className="panel-heading"><h2>School applications</h2><span>{schools.length} records</span></div>
-            {schools.length === 0 ? <div className="empty"><Building2 /><h3>No applications yet</h3><p>New school applications will appear here for review.</p><button className="secondary" onClick={() => setPage('apply')}>Create a test application</button></div> : <div className="table-wrap"><table><thead><tr><th>School</th><th>Applicant</th><th>County</th><th>Reference</th><th>Status</th><th>Review</th></tr></thead><tbody>{schools.map(s => <tr key={s.id}><td><b>{s.name}</b><small>{s.school_type}</small></td><td>{s.applicant_name || '—'}<small>{s.contact_email}</small></td><td>{s.county || '—'}</td><td><code>{s.application_number}</code></td><td><span className={'status ' + s.status}>{s.status}</span></td><td>{s.status === 'pending' ? <div className="actions"><button disabled={busy === s.id} onClick={() => void review(s.id, 'approve')}>Approve</button><button disabled={busy === s.id} onClick={() => void review(s.id, 'reject')}>Reject</button></div> : '—'}</td></tr>)}</tbody></table></div>}
+          <section className="panel"><div className="panel-heading"><h2>School applications & administration</h2><span>{schools.length} records</span></div>
+            {schools.length === 0 ? <div className="empty"><Building2 /><h3>No applications yet</h3><p>New school applications will appear here for review.</p><button className="secondary" onClick={() => setPage('apply')}>Create a test application</button></div> : <div className="table-wrap"><table><thead><tr><th>School</th><th>Applicant</th><th>County</th><th>Reference</th><th>Status</th><th>Actions</th></tr></thead><tbody>{schools.map(s => <tr key={s.id}><td><b>{s.name}</b><small>{s.school_type}</small></td><td>{s.applicant_name || '—'}<small>{s.contact_email}</small></td><td>{s.county || '—'}</td><td><code>{s.application_number}</code></td><td><span className={'status ' + s.status}>{s.status}</span></td><td><div className="actions"><button disabled={busy === s.id} onClick={() => { setManagedSchool(s); setEditingSchool(false) }}>View</button>{s.status !== 'pending' && <button disabled={busy === s.id} onClick={() => startSchoolEdit(s)}>Edit</button>}{s.status === 'pending' ? <><button disabled={busy === s.id} onClick={() => void review(s.id, 'approve')}>Approve</button><button disabled={busy === s.id} onClick={() => void review(s.id, 'reject')}>Reject</button></> : s.status === 'approved' ? <button disabled={busy === s.id} onClick={() => void changeSchoolStatus(s, 'suspend')}>Suspend</button> : s.status === 'suspended' ? <button disabled={busy === s.id} onClick={() => void changeSchoolStatus(s, 'activate')}>Activate</button> : null}</div></td></tr>)}</tbody></table></div>}
+            {managedSchool && <div className="panel" style={{ marginTop: 20 }}>
+              <div className="panel-heading"><h2>{editingSchool ? 'Edit school details' : 'School details'}</h2><button className="secondary" onClick={() => { setManagedSchool(null); setEditingSchool(false) }}>Close</button></div>
+              {editingSchool ? <form className="school-form" onSubmit={saveSchoolEdit}>
+                <label>School name *<input required value={schoolDraft.name} onChange={e => setSchoolDraft({ ...schoolDraft, name: e.target.value })} /></label>
+                <label>School type *<select value={schoolDraft.school_type} onChange={e => setSchoolDraft({ ...schoolDraft, school_type: e.target.value })}><option value="primary_secondary">Primary & Secondary</option><option value="primary">Primary</option><option value="secondary">Secondary</option></select></label>
+                <label>Applicant name<input value={schoolDraft.applicant_name} onChange={e => setSchoolDraft({ ...schoolDraft, applicant_name: e.target.value })} /></label>
+                <label>Contact email<input type="email" value={schoolDraft.contact_email} onChange={e => setSchoolDraft({ ...schoolDraft, contact_email: e.target.value })} /></label>
+                <label>Contact phone<input value={schoolDraft.contact_phone} onChange={e => setSchoolDraft({ ...schoolDraft, contact_phone: e.target.value })} /></label>
+                <label>County<input value={schoolDraft.county} onChange={e => setSchoolDraft({ ...schoolDraft, county: e.target.value })} /></label>
+                <label>Sub-county<input value={schoolDraft.sub_county} onChange={e => setSchoolDraft({ ...schoolDraft, sub_county: e.target.value })} /></label>
+                <label>Registration number<input value={schoolDraft.registration_number} onChange={e => setSchoolDraft({ ...schoolDraft, registration_number: e.target.value })} /></label>
+                <label className="wide">Physical address<textarea rows={3} value={schoolDraft.address} onChange={e => setSchoolDraft({ ...schoolDraft, address: e.target.value })} /></label>
+                <button className="primary wide" type="submit" disabled={busy === managedSchool.id}>{busy === managedSchool.id ? 'Saving…' : 'Save school details'}</button>
+              </form> : <div className="school-details">
+                <p><b>School:</b> {managedSchool.name}</p><p><b>Type:</b> {managedSchool.school_type.replace(/_/g, ' ')}</p><p><b>Status:</b> {managedSchool.status}</p><p><b>Applicant:</b> {managedSchool.applicant_name || '—'}</p><p><b>Email:</b> {managedSchool.contact_email || '—'}</p><p><b>Phone:</b> {managedSchool.contact_phone || '—'}</p><p><b>County:</b> {managedSchool.county || '—'}</p><p><b>Sub-county:</b> {managedSchool.sub_county || '—'}</p><p><b>Registration:</b> {managedSchool.registration_number || '—'}</p><p><b>Address:</b> {managedSchool.address || '—'}</p><p><b>Application reference:</b> {managedSchool.application_number}</p>
+              </div>}
+            </div>}
           </section>
         </> : <section className="panel">
           <div className="empty"><Building2 /><h3>Welcome to Smart Minds</h3><p>Use the invitation code from your school to link your staff account. Make sure you are signed in with the email address registered by your school.</p></div>
