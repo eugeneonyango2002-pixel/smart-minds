@@ -49,6 +49,17 @@ export default function App() {
   const [invitationCode, setInvitationCode] = useState('')
   const [claimingInvitation, setClaimingInvitation] = useState(false)
   const [staffAccount, setStaffAccount] = useState<{ role: string; school_id: string; staff_id: string } | null>(null)
+  const rolePages: Record<string, string[]> = {
+    school_admin: ['academic', 'students', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports'],
+    head_teacher: ['academic', 'students', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports'],
+    deputy_head_teacher: ['academic', 'students', 'attendance'],
+    teacher: ['students', 'attendance'],
+    bursar: ['fees', 'fee-statements', 'fee-reports'],
+    secretary: ['students', 'attendance'],
+    support_staff: [],
+  }
+  const role = staffAccount?.role || ''
+  const canAccess = (target: string) => admin || rolePages[role]?.includes(target) === true
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false) })
@@ -77,6 +88,10 @@ export default function App() {
     void loadStaffAccount()
     return () => { cancelled = true }
   }, [session])
+
+  useEffect(() => {
+    if (!admin && page !== 'dashboard' && page !== 'apply' && !canAccess(page)) setPage('dashboard')
+  }, [admin, page, staffAccount])
 
   async function loadSchools() {
     setError('')
@@ -167,21 +182,6 @@ export default function App() {
       {error && <p className="alert error"><XCircle />{error}</p>}{notice && <p className="alert success"><CheckCircle2 />{notice}</p>}
     </div></section>
   </main>
-
-  const role = staffAccount?.role || ''
-  const rolePages: Record<string, string[]> = {
-    school_admin: ['academic', 'students', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports'],
-    head_teacher: ['academic', 'students', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports'],
-    deputy_head_teacher: ['academic', 'students', 'attendance'],
-    teacher: ['students', 'attendance'],
-    bursar: ['fees', 'fee-statements', 'fee-reports'],
-    secretary: ['students', 'attendance'],
-    support_staff: [],
-  }
-  const canAccess = (target: string) => admin || rolePages[role]?.includes(target) === true
-  useEffect(() => {
-    if (!admin && page !== 'dashboard' && page !== 'apply' && !canAccess(page)) setPage('dashboard')
-  }, [admin, page, staffAccount])
 
   const pending = schools.filter(s => s.status === 'pending').length
   const approved = schools.filter(s => s.status === 'approved').length
