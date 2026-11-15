@@ -11,11 +11,10 @@ type Result = Row & { student_id: string; subject_id: string; score: number; rem
 
 function grade(score: number, max: number) {
   const percent = max > 0 ? score / max * 100 : 0
-  if (percent >= 80) return 'A'
-  if (percent >= 70) return 'B'
-  if (percent >= 60) return 'C'
-  if (percent >= 50) return 'D'
-  return 'E'
+  if (percent >= 80) return 'EE'
+  if (percent >= 60) return 'ME'
+  if (percent >= 40) return 'AE'
+  return 'BE'
 }
 const fullName = (s: Learner) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(' ')
 
@@ -165,7 +164,7 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
           <button className="primary wide" disabled={busy || !examStudents.length || !subjects.length}>{busy ? 'Saving…' : existingMark ? 'Update mark' : 'Save mark'}</button>
         </form>
         <h3>Marks recorded ({results.length})</h3>
-        {results.length === 0 ? <p className="muted">No marks have been entered for this examination.</p> : <div className="table-wrap"><table><thead><tr><th>Learner</th><th>Subject</th><th>Score</th><th>Grade</th><th>Remarks</th></tr></thead><tbody>{results.map(r => { const s = students.find(x => x.id === r.student_id); const sub = subjects.find(x => x.id === r.subject_id); return <tr key={r.id}><td>{s ? fullName(s) : 'Learner'}</td><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || '—'}</td></tr> })}</tbody></table></div>}
+        {results.length === 0 ? <p className="muted">No marks have been entered for this examination.</p> : <div className="table-wrap"><table><thead><tr><th>Learner</th><th>Subject</th><th>Score</th><th>CBC achievement level</th><th>Remarks</th></tr></thead><tbody>{results.map(r => { const s = students.find(x => x.id === r.student_id); const sub = subjects.find(x => x.id === r.subject_id); return <tr key={r.id}><td>{s ? fullName(s) : 'Learner'}</td><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || '—'}</td></tr> })}</tbody></table></div>}
       </>}
     </>}
     {tab === 'reports' && <>
@@ -174,8 +173,8 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
       {student && selectedExam && <div className="panel" id="learner-report-card">
         <div className="panel-heading"><div><p className="kicker">SMART MINDS · LEARNER REPORT</p><h2>{fullName(student)}</h2><p className="muted">{student.admission_number} · {classes.find(c => c.id === student.class_id)?.name || ''}</p></div><button className="secondary" onClick={() => window.print()}><Printer/> Print report card</button></div>
         <h3>{selectedExam.name}</h3>
-        <div className="table-wrap"><table><thead><tr><th>Learning area</th><th>Score</th><th>Percentage</th><th>Grade</th><th>Teacher remarks</th></tr></thead><tbody>{reportResults.map(r => { const sub = subjects.find(x => x.id === r.subject_id); const pct = Number(r.score) / Number(selectedExam.max_score) * 100; return <tr key={r.id}><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{pct.toFixed(1)}%</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || '—'}</td></tr> })}</tbody></table></div>
-        <div className="stats"><article className="panel"><span>Total score</span><b>{total.toFixed(1)}</b></article><article className="panel"><span>Average</span><b>{average.toFixed(1)}%</b></article><article className="panel"><span>Overall grade</span><b>{reportResults.length ? grade(average,100) : '—'}</b></article></div>
+        <div className="table-wrap"><table><thead><tr><th>Learning area</th><th>Score</th><th>Percentage</th><th>CBC achievement level</th><th>Teacher remarks</th></tr></thead><tbody>{reportResults.map(r => { const sub = subjects.find(x => x.id === r.subject_id); const pct = Number(r.score) / Number(selectedExam.max_score) * 100; return <tr key={r.id}><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{pct.toFixed(1)}%</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || '—'}</td></tr> })}</tbody></table></div>
+        <div className="stats"><article className="panel"><span>Total score</span><b>{total.toFixed(1)}</b></article><article className="panel"><span>Average</span><b>{average.toFixed(1)}%</b></article><article className="panel"><span>Overall CBC level</span><b>{reportResults.length ? grade(average,100) : '—'}</b></article></div>
         {reportResults.length === 0 && <p className="muted">No subject marks have been recorded for this learner yet.</p>}
       </div>}
     </>}
