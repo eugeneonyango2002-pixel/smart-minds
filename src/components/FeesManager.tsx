@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Wallet, Plus, RefreshCw, Search, XCircle, CheckCircle2 } from 'lucide-react'
+import { Wallet, Plus, RefreshCw, Search, XCircle, CheckCircle2, FileText } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type School = { id: string; name: string }
 type Row = { id: string; name: string }
 type Student = { id: string; admission_number: string; first_name: string; middle_name: string | null; last_name: string; class_id: string | null; status: string }
 type Fee = { id: string; class_id: string; academic_year_id: string; term_id: string | null; item_name: string; amount_kes: number; due_date: string | null }
-type Payment = { id: string; student_id: string; fee_structure_id: string; amount_kes: number; payment_method: string; transaction_reference: string | null; payment_date: string; created_at: string }
+type Payment = { id: string; student_id: string; fee_structure_id: string; amount_kes: number; payment_method: string; transaction_reference: string | null; receipt_number: string; payment_date: string; created_at: string }
 const today = () => new Date().toLocaleDateString('en-CA')
 const blankCharge = { class_id:'', academic_year_id:'', term_id:'', item_name:'Tuition fees', amount_kes:'', due_date:'' }
 const blankPayment = { student_id:'', fee_structure_id:'', amount_kes:'', payment_method:'mpesa', transaction_reference:'', payment_date:today(), notes:'' }
@@ -27,6 +27,7 @@ export default function FeesManager({ schools }: { schools: School[] }) {
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [notice,setNotice]=useState('')
+  const [receiptPayment,setReceiptPayment]=useState<Payment|null>(null)
   useEffect(()=>{if(!schoolId&&schools.length)setSchoolId(schools.find(s=>(s as any).status==='approved')?.id||schools[0].id)},[schools,schoolId])
   useEffect(()=>{if(schoolId)void load()},[schoolId])
   async function load(){
@@ -69,6 +70,9 @@ export default function FeesManager({ schools }: { schools: School[] }) {
     setBusy(false)
   }
   const totalCollected=payments.reduce((sum,p)=>sum+Number(p.amount_kes),0)
+  const receiptStudent=receiptPayment?students.find(s=>s.id===receiptPayment.student_id):null
+  const receiptFee=receiptPayment?fees.find(f=>f.id===receiptPayment.fee_structure_id):null
+  const money=(n:number)=>'KES '+n.toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2})
   return <section className="panel fees-panel">
     <div className="academic-head"><div><p className="kicker">SCHOOL FINANCE</p><h2>Fees management</h2><p className="muted">Set class fee charges, record learner payments and track balances.</p></div><button className="secondary" onClick={()=>void load()}><RefreshCw/> Refresh</button></div>
     <label className="school-picker">Select school<select value={schoolId} onChange={e=>{setSchoolId(e.target.value);setAddingCharge(false);setAddingPayment(false)}}>{schools.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
@@ -96,6 +100,21 @@ export default function FeesManager({ schools }: { schools: School[] }) {
       <div className="academic-form-actions"><button type="button" className="secondary" onClick={()=>setAddingPayment(false)}>Cancel</button><button className="primary" disabled={busy||!selectedFee||!selectedStudent||balance<=0}>{busy?'Saving…':'Save payment'}</button></div>
     </form>}
     <div className="panel-heading"><h2>Recent payments</h2><span>{visiblePayments.length} records shown</span></div>
-    {visiblePayments.length===0?<div className="empty"><Wallet/><h3>No payments found</h3><p>Recorded learner payments will appear here.</p></div>:<div className="table-wrap"><table><thead><tr><th>Date</th><th>Student</th><th>Fee item</th><th>Amount</th><th>Method</th><th>Reference</th></tr></thead><tbody>{visiblePayments.map(p=>{const s=students.find(x=>x.id===p.student_id);const f=fees.find(x=>x.id===p.fee_structure_id);return <tr key={p.id}><td>{p.payment_date}</td><td><b>{s? s.first_name+' '+s.last_name:'Learner'}</b><small>{s?.admission_number||''}</small></td><td>{f?.item_name||'Fee item'}</td><td><b>KES {Number(p.amount_kes).toLocaleString('en-KE',{minimumFractionDigits:2})}</b></td><td>{p.payment_method.toUpperCase()}</td><td>{p.transaction_reference||'—'}</td></tr>})}</tbody></table></div>}
+    {visiblePayments.length===0?<div className="empty"><Wallet/><h3>No payments found</h3><p>Recorded learner payments will appear here.</p></div>:<div className="table-wrap"><table><thead><tr><th>Date</th><th>Student</th><th>Fee item</th><th>Amount</th><th>Method</th><th>Reference</th><th>Receipt</th></tr></thead><tbody>{visiblePayments.map(p=>{const s=students.find(x=>x.id===p.student_id);const f=fees.find(x=>x.id===p.fee_structure_id);return <tr key={p.id}><td>{p.payment_date}</td><td><b>{s? s.first_name+' '+s.last_name:'Learner'}</b><small>{s?.admission_number||''}</small></td><td>{f?.item_name||'Fee item'}</td><td><b>KES {Number(p.amount_kes).toLocaleString('en-KE',{minimumFractionDigits:2})}</b></td><td>{p.payment_method.toUpperCase()}</td><td>{p.transaction_reference||'—'}</td><td><button className="secondary" onClick={()=>setReceiptPayment(p)}>View receipt</button></td></tr>})}</tbody></table></div>}
+    {receiptPayment&&<div className="receipt-overlay no-print"><section className="receipt-paper" aria-label="Payment receipt">
+      <div className="receipt-head"><div><p className="kicker">SMART MINDS · SCHOOL FINANCE</p><h2>OFFICIAL PAYMENT RECEIPT</h2><p>Payment acknowledgement</p></div><button className="secondary no-print" onClick={()=>setReceiptPayment(null)}>Close</button></div>
+      <div className="receipt-number"><span>Receipt number</span><b>{receiptPayment.receipt_number}</b></div>
+      <div className="receipt-details">
+        <div><span>Received from</span><b>{receiptStudent?[receiptStudent.first_name,receiptStudent.middle_name,receiptStudent.last_name].filter(Boolean).join(' '):'Learner'}</b></div>
+        <div><span>Admission number</span><b>{receiptStudent?.admission_number||'—'}</b></div>
+        <div><span>Payment date</span><b>{receiptPayment.payment_date}</b></div>
+        <div><span>Payment method</span><b>{receiptPayment.payment_method.toUpperCase()}</b></div>
+        <div><span>Fee item</span><b>{receiptFee?.item_name||'Fee payment'}</b></div>
+        <div><span>Transaction reference</span><b>{receiptPayment.transaction_reference||'—'}</b></div>
+      </div>
+      <div className="receipt-amount"><span>Amount received</span><strong>{money(Number(receiptPayment.amount_kes))}</strong></div>
+      <p className="receipt-thanks">Thank you. This receipt confirms that the payment has been recorded in Smart Minds.</p>
+      <div className="receipt-actions no-print"><button className="primary" onClick={()=>window.print()}><FileText/> Print / Save PDF</button></div>
+    </section></div>}
   </section>
 }
