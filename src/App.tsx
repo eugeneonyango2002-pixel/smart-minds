@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Activity, ArrowRight, Building2, CalendarCheck, CheckCircle2, GraduationCap, LogOut, Mail, Lock, Menu, RefreshCw, ShieldCheck, Users, XCircle } from 'lucide-react'
+import { Activity, ArrowRight, Building2, CalendarCheck, CheckCircle2, GraduationCap, LogOut, Mail, Lock, Menu, RefreshCw, ShieldCheck, Users, Wallet, XCircle } from 'lucide-react'
 import { supabase, supabaseConfigured } from './lib/supabase'
 import AcademicManager from './components/AcademicManager'
 import StudentManager from './components/StudentManager'
 import AttendanceManager from './components/AttendanceManager'
+import FeesManager from './components/FeesManager'
 
 type School = {
   id: string
@@ -29,7 +30,7 @@ export default function App() {
   const [notice, setNotice] = useState('')
   const [admin, setAdmin] = useState(false)
   const [schools, setSchools] = useState<School[]>([])
-  const [page, setPage] = useState<'dashboard' | 'apply' | 'academic' | 'students' | 'attendance'>('dashboard')
+  const [page, setPage] = useState<'dashboard' | 'apply' | 'academic' | 'students' | 'attendance' | 'fees'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const navigate = (nextPage: typeof page) => { setPage(nextPage); setSidebarOpen(false) }
   const [schoolName, setSchoolName] = useState('')
@@ -137,11 +138,12 @@ export default function App() {
       {admin && <button className={page === 'academic' ? 'nav active' : 'nav'} onClick={() => navigate('academic')}><GraduationCap /> Academic setup</button>}
       {admin && <button className={page === 'students' ? 'nav active' : 'nav'} onClick={() => navigate('students')}><Users /> Students</button>}
       {admin && <button className={page === 'attendance' ? 'nav active' : 'nav'} onClick={() => navigate('attendance')}><CalendarCheck /> Attendance</button>}
+      {admin && <button className={page === 'fees' ? 'nav active' : 'nav'} onClick={() => navigate('fees')}><Wallet /> Fees</button>}
       <div className="sidebar-bottom"><span><ShieldCheck /> Secure workspace</span><button className="nav" onClick={() => void supabase.auth.signOut()}><LogOut /> Sign out</button></div>
     </aside>
-    <button className={sidebarOpen ? "drawer-backdrop visible" : "drawer-backdrop"} aria-label="Close navigation" onClick={() => setSidebarOpen(false)} /><main className="main"><header><button className="menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(!sidebarOpen)}><Menu /></button><div><p className="kicker">SMART MINDS PLATFORM</p><h1>{page === 'apply' ? 'School registration' : page === 'academic' ? 'Academic setup' : page === 'students' ? 'Student management' : page === 'attendance' ? 'Student attendance' : admin ? 'Platform overview' : 'My workspace'}</h1></div><span className="user-email">{session.user.email}</span></header>
+    <button className={sidebarOpen ? "drawer-backdrop visible" : "drawer-backdrop"} aria-label="Close navigation" onClick={() => setSidebarOpen(false)} /><main className="main"><header><button className="menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(!sidebarOpen)}><Menu /></button><div><p className="kicker">SMART MINDS PLATFORM</p><h1>{page === 'apply' ? 'School registration' : page === 'academic' ? 'Academic setup' : page === 'students' ? 'Student management' : page === 'attendance' ? 'Student attendance' : page === 'fees' ? 'Fees management' : admin ? 'Platform overview' : 'My workspace'}</h1></div><span className="user-email">{session.user.email}</span></header>
       {error && <p className="alert error"><XCircle />{error}</p>}{notice && <p className="alert success"><CheckCircle2 />{notice}</p>}
-      {page === 'academic' ? <AcademicManager schools={schools} /> : page === 'students' ? <StudentManager schools={schools} /> : page === 'attendance' ? <AttendanceManager schools={schools} /> : page === 'apply' ? <section className="panel"><p className="kicker">JOIN SMART MINDS</p><h2>Apply to register your school</h2><p className="muted">Applications are reviewed by the central Smart Minds administrator.</p>
+      {page === 'academic' ? <AcademicManager schools={schools} /> : page === 'students' ? <StudentManager schools={schools} /> : page === 'attendance' ? <AttendanceManager schools={schools} /> : page === 'fees' ? <FeesManager schools={schools} /> : page === 'apply' ? <section className="panel"><p className="kicker">JOIN SMART MINDS</p><h2>Apply to register your school</h2><p className="muted">Applications are reviewed by the central Smart Minds administrator.</p>
         <form className="school-form" onSubmit={apply}>
           <label>School name *<input required value={schoolName} onChange={e => setSchoolName(e.target.value)} /></label>
           <label>School type *<select value={schoolType} onChange={e => setSchoolType(e.target.value)}><option value="primary_secondary">Primary & Secondary</option><option value="primary">Primary</option><option value="secondary">Secondary</option></select></label>
