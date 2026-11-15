@@ -1,6 +1,6 @@
 -- Smart Minds Phase 3A: Academic foundation
 -- Run this script in Supabase SQL Editor while connected to the smart-minds project.
--- All records are scoped to a school. Access is limited to platform admins and members of that school.
+-- Every academic record is tied to one school; composite foreign keys prevent cross-school links.
 
 create table if not exists public.academic_years (
   id uuid primary key default gen_random_uuid(),
@@ -11,19 +11,22 @@ create table if not exists public.academic_years (
   is_current boolean not null default false,
   created_at timestamptz not null default now(),
   constraint academic_year_dates_check check (end_date >= start_date),
-  constraint academic_year_name_unique unique (school_id, name)
+  constraint academic_year_name_unique unique (school_id, name),
+  constraint academic_year_school_id_unique unique (school_id, id)
 );
 
 create table if not exists public.terms (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
-  academic_year_id uuid not null references public.academic_years(id) on delete cascade,
+  academic_year_id uuid not null,
   name text not null,
   start_date date not null,
   end_date date not null,
   created_at timestamptz not null default now(),
   constraint term_dates_check check (end_date >= start_date),
-  constraint term_name_unique_per_year unique (academic_year_id, name)
+  constraint term_name_unique_per_year unique (academic_year_id, name),
+  constraint term_year_same_school_fk foreign key (school_id, academic_year_id)
+    references public.academic_years(school_id, id) on delete cascade
 );
 
 create table if not exists public.classes (
@@ -34,16 +37,19 @@ create table if not exists public.classes (
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   constraint class_level_check check (level in ('pre_primary', 'primary', 'junior_secondary', 'senior_secondary')),
-  constraint class_name_unique unique (school_id, name)
+  constraint class_name_unique unique (school_id, name),
+  constraint class_school_id_unique unique (school_id, id)
 );
 
 create table if not exists public.streams (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
-  class_id uuid not null references public.classes(id) on delete cascade,
+  class_id uuid not null,
   name text not null,
   created_at timestamptz not null default now(),
-  constraint stream_name_unique unique (class_id, name)
+  constraint stream_name_unique unique (class_id, name),
+  constraint stream_class_same_school_fk foreign key (school_id, class_id)
+    references public.classes(school_id, id) on delete cascade
 );
 
 create table if not exists public.subjects (
@@ -54,16 +60,21 @@ create table if not exists public.subjects (
   category text not null default 'core',
   created_at timestamptz not null default now(),
   constraint subject_category_check check (category in ('core', 'optional', 'co_curricular')),
-  constraint subject_name_unique unique (school_id, name)
+  constraint subject_name_unique unique (school_id, name),
+  constraint subject_school_id_unique unique (school_id, id)
 );
 
 create table if not exists public.class_subjects (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
-  class_id uuid not null references public.classes(id) on delete cascade,
-  subject_id uuid not null references public.subjects(id) on delete cascade,
+  class_id uuid not null,
+  subject_id uuid not null,
   created_at timestamptz not null default now(),
-  constraint class_subject_unique unique (class_id, subject_id)
+  constraint class_subject_unique unique (class_id, subject_id),
+  constraint class_subject_class_same_school_fk foreign key (school_id, class_id)
+    references public.classes(school_id, id) on delete cascade,
+  constraint class_subject_subject_same_school_fk foreign key (school_id, subject_id)
+    references public.subjects(school_id, id) on delete cascade
 );
 
 create index if not exists academic_years_school_idx on public.academic_years(school_id);
