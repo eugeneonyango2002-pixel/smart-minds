@@ -11,7 +11,7 @@ type Student = {
   guardian_name: string | null; guardian_phone: string | null; status: string
 }
 const blank = { admission_number:'', first_name:'', middle_name:'', last_name:'', gender:'', date_of_birth:'', admission_date:new Date().toISOString().slice(0,10), class_id:'', stream_id:'', guardian_name:'', guardian_relationship:'', guardian_phone:'', guardian_email:'', address:'' }
-export default function StudentManager({ schools }: { schools: School[] }) {
+export default function StudentManager({ schools, canManage = true }: { schools: School[]; canManage?: boolean }) {
   const [schoolId,setSchoolId]=useState('')
   const [students,setStudents]=useState<Student[]>([])
   const [classes,setClasses]=useState<ClassRow[]>([])
@@ -49,7 +49,7 @@ export default function StudentManager({ schools }: { schools: School[] }) {
   return <section className="panel student-panel">
     <div className="academic-head"><div><p className="kicker">SCHOOL RECORDS</p><h2>Student management</h2><p className="muted">Register learners, assign classes and streams, and maintain admission records.</p></div><button className="secondary" onClick={()=>void load()}><RefreshCw/> Refresh</button></div>
     <label className="school-picker">Select school<select value={schoolId} onChange={e=>{setSchoolId(e.target.value);setAdding(false)}}>{schools.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-    <div className="student-toolbar"><div className="student-search"><Search/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name or admission number"/></div><button className="primary" disabled={!schoolId} onClick={()=>{setAdding(!adding);setError('');setNotice('')}}><Plus/> Register student</button></div>
+    <div className="student-toolbar"><div className="student-search"><Search/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name or admission number"/></div>{canManage && <button className="primary" disabled={!schoolId} onClick={()=>{setAdding(!adding);setError('');setNotice('')}}><Plus/> Register student</button>}</div>
     {error&&<p className="alert error"><XCircle/>{error}</p>}{notice&&<p className="alert success"><CheckCircle2/>{notice}</p>}
     {adding&&<form className="student-form" onSubmit={save}>
       <h3>Student details</h3>
