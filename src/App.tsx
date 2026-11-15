@@ -843,6 +843,10 @@ export default function App() {
             </>}
           </section>
         </> : <section className="panel">
+          {staffAccount && (() => { const school = schools.find(s => s.id === staffAccount.school_id); return school ? <div className="school-branding-banner" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 18, marginBottom: 18, border: '1px solid var(--border, #e5e7eb)', borderRadius: 12 }}>
+            {school.logo_url ? <img src={school.logo_url} alt={school.name + ' logo'} style={{ width: 76, height: 76, objectFit: 'contain', borderRadius: 8 }} /> : <Building2 size={42} />}
+            <div><h2 style={{ margin: 0 }}>{school.name}</h2>{school.motto && <p className="muted" style={{ margin: '6px 0 0' }}>{school.motto}</p>}<p className="muted" style={{ margin: '5px 0 0' }}>{school.county || ''}{school.sub_county ? ' · ' + school.sub_county : ''}</p></div>
+          </div> : null })()}
           <div className="empty"><Building2 /><h3>Welcome to Smart Minds</h3><p>Use the invitation code from your school to link your staff account. Make sure you are signed in with the email address registered by your school.</p></div>
           {staffAccount ? <div className="notice"><ShieldCheck /> Staff account linked. Assigned role: <b>{staffAccount.role.replace(/_/g, ' ')}</b>. Your school workspace access will be enabled as the role-based modules are completed.</div> : <form className="school-form" onSubmit={claimInvitation}>
             <label className="wide">Staff invitation code<input required value={invitationCode} onChange={e => setInvitationCode(e.target.value)} placeholder="Paste your one-time invitation code" autoComplete="off" /></label>
