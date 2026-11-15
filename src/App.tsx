@@ -168,24 +168,39 @@ export default function App() {
     </div></section>
   </main>
 
+  const role = staffAccount?.role || ''
+  const rolePages: Record<string, string[]> = {
+    school_admin: ['academic', 'students', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports'],
+    head_teacher: ['academic', 'students', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports'],
+    deputy_head_teacher: ['academic', 'students', 'attendance'],
+    teacher: ['students', 'attendance'],
+    bursar: ['fees', 'fee-statements', 'fee-reports'],
+    secretary: ['students', 'attendance'],
+    support_staff: [],
+  }
+  const canAccess = (target: string) => admin || rolePages[role]?.includes(target) === true
+  useEffect(() => {
+    if (!admin && page !== 'dashboard' && page !== 'apply' && !canAccess(page)) setPage('dashboard')
+  }, [admin, page, staffAccount])
+
   const pending = schools.filter(s => s.status === 'pending').length
   const approved = schools.filter(s => s.status === 'approved').length
   return <div className="layout">
     <aside className={sidebarOpen ? "sidebar drawer-open" : "sidebar"}><div className="brand"><span className="logo"><GraduationCap /></span><span>SMART MINDS<small>School management</small></span></div><p className="nav-title">WORKSPACE</p>
       <button className={page === 'dashboard' ? 'nav active' : 'nav'} onClick={() => navigate('dashboard')}><Activity /> Dashboard</button>
       <button className={page === 'apply' ? 'nav active' : 'nav'} onClick={() => navigate('apply')}><Building2 /> Register a school</button>
-      {admin && <button className={page === 'academic' ? 'nav active' : 'nav'} onClick={() => navigate('academic')}><GraduationCap /> Academic setup</button>}
-      {admin && <button className={page === 'students' ? 'nav active' : 'nav'} onClick={() => navigate('students')}><Users /> Students</button>}
-      {admin && <button className={page === 'staff' ? 'nav active' : 'nav'} onClick={() => navigate('staff')}><Users /> Staff management</button>}
-      {admin && <button className={page === 'attendance' ? 'nav active' : 'nav'} onClick={() => navigate('attendance')}><CalendarCheck /> Attendance</button>}
-      {admin && <button className={page === 'fees' ? 'nav active' : 'nav'} onClick={() => navigate('fees')}><Wallet /> Fees</button>}
-      {admin && <button className={page === 'fee-statements' ? 'nav active' : 'nav'} onClick={() => navigate('fee-statements')}><FileText /> Fee balances & statements</button>}
-      {admin && <button className={page === 'fee-reports' ? 'nav active' : 'nav'} onClick={() => navigate('fee-reports')}><Activity /> Fee reports</button>}
+      {canAccess('academic') && <button className={page === 'academic' ? 'nav active' : 'nav'} onClick={() => navigate('academic')}><GraduationCap /> Academic setup</button>}
+      {canAccess('students') && <button className={page === 'students' ? 'nav active' : 'nav'} onClick={() => navigate('students')}><Users /> Students</button>}
+      {canAccess('staff') && <button className={page === 'staff' ? 'nav active' : 'nav'} onClick={() => navigate('staff')}><Users /> Staff management</button>}
+      {canAccess('attendance') && <button className={page === 'attendance' ? 'nav active' : 'nav'} onClick={() => navigate('attendance')}><CalendarCheck /> Attendance</button>}
+      {canAccess('fees') && <button className={page === 'fees' ? 'nav active' : 'nav'} onClick={() => navigate('fees')}><Wallet /> Fees</button>}
+      {canAccess('fee-statements') && <button className={page === 'fee-statements' ? 'nav active' : 'nav'} onClick={() => navigate('fee-statements')}><FileText /> Fee balances & statements</button>}
+      {canAccess('fee-reports') && <button className={page === 'fee-reports' ? 'nav active' : 'nav'} onClick={() => navigate('fee-reports')}><Activity /> Fee reports</button>}
       <div className="sidebar-bottom"><button className="nav" onClick={() => void supabase.auth.signOut()}><LogOut /> Sign out</button><div className="developer-credit">Developed by <b>Eugene Media Graphix</b></div><span><ShieldCheck /> Secure workspace</span></div>
     </aside>
     <button className={sidebarOpen ? "drawer-backdrop visible" : "drawer-backdrop"} aria-label="Close navigation" onClick={() => setSidebarOpen(false)} /><main className="main"><header><button className="menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(!sidebarOpen)}><Menu /></button><div><p className="kicker">SMART MINDS PLATFORM</p><h1>{page === 'apply' ? 'School registration' : page === 'academic' ? 'Academic setup' : page === 'students' ? 'Student management' : page === 'attendance' ? 'Student attendance' : page === 'fees' ? 'Fees management' : page === 'fee-statements' ? 'Fee balances & statements' : page === 'fee-reports' ? 'Fee collection reports' : page === 'staff' ? 'Staff management' : admin ? 'Platform overview' : 'My workspace'}</h1></div><span className="user-email">{session.user.email}</span></header>
       {error && <p className="alert error"><XCircle />{error}</p>}{notice && <p className="alert success"><CheckCircle2 />{notice}</p>}
-      {page === 'academic' ? <AcademicManager schools={schools} /> : page === 'students' ? <StudentManager schools={schools} /> : page === 'attendance' ? <AttendanceManager schools={schools} /> : page === 'fees' ? <FeesManager schools={schools} /> : page === 'fee-statements' ? <FeeStatements schools={schools} /> : page === 'fee-reports' ? <FeeReports schools={schools} /> : page === 'staff' ? <StaffManager schools={schools} /> : page === 'apply' ? <section className="panel"><p className="kicker">JOIN SMART MINDS</p><h2>Apply to register your school</h2><p className="muted">Applications are reviewed by the central Smart Minds administrator.</p>
+      {page !== 'dashboard' && page !== 'apply' && !canAccess(page) ? <section className="panel"><h2>Access restricted</h2><p className="muted">Your assigned role ({role.replace(/_/g, ' ') || 'unassigned'}) does not have permission to open this module.</p><button className="secondary" onClick={() => navigate('dashboard')}>Return to dashboard</button></section> : page === 'academic' ? <AcademicManager schools={schools} /> : page === 'students' ? <StudentManager schools={schools} /> : page === 'attendance' ? <AttendanceManager schools={schools} /> : page === 'fees' ? <FeesManager schools={schools} /> : page === 'fee-statements' ? <FeeStatements schools={schools} /> : page === 'fee-reports' ? <FeeReports schools={schools} /> : page === 'staff' ? <StaffManager schools={schools} /> : page === 'apply' ? <section className="panel"><p className="kicker">JOIN SMART MINDS</p><h2>Apply to register your school</h2><p className="muted">Applications are reviewed by the central Smart Minds administrator.</p>
         <form className="school-form" onSubmit={apply}>
           <label>School name *<input required value={schoolName} onChange={e => setSchoolName(e.target.value)} /></label>
           <label>School type *<select value={schoolType} onChange={e => setSchoolType(e.target.value)}><option value="primary_secondary">Primary & Secondary</option><option value="primary">Primary</option><option value="secondary">Secondary</option></select></label>
