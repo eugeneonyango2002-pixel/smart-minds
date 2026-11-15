@@ -411,6 +411,8 @@ type School = {
   contact_phone?: string | null
   address?: string | null
   registration_number?: string | null
+  motto?: string | null
+  logo_url?: string | null
   created_at?: string
 }
 
@@ -436,6 +438,9 @@ export default function App() {
   const [editingSchool, setEditingSchool] = useState(false)
   const [schoolDraft, setSchoolDraft] = useState({ name: '', school_type: 'primary_secondary', applicant_name: '', contact_email: '', contact_phone: '', county: '', sub_county: '', address: '', registration_number: '' })
   const [profileDraft, setProfileDraft] = useState({ name: '', school_type: 'primary_secondary', applicant_name: '', contact_email: '', contact_phone: '', county: '', sub_county: '', address: '', registration_number: '' })
+  const [profileMotto, setProfileMotto] = useState('')
+  const [profileLogoUrl, setProfileLogoUrl] = useState('')
+  const [profileLogoFile, setProfileLogoFile] = useState<File | null>(null)
   const [page, setPage] = useState<'dashboard' | 'apply' | 'academic' | 'students' | 'attendance' | 'fees' | 'fee-statements' | 'fee-reports' | 'staff' | 'profile'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const navigate = (nextPage: typeof page) => { setPage(nextPage); setSidebarOpen(false) }
@@ -617,6 +622,47 @@ export default function App() {
     setBusy('')
   }
 
+  async function saveMySchoolBranding(e: FormEvent) {
+    e.preventDefault()
+    if (!staffAccount?.school_id) { setError('Your staff account is not linked to a school.'); return }
+    setBusy('branding'); setError(''); setNotice('')
+    let nextLogoUrl = profileLogoUrl
+    if (profileLogoFile) {
+      const allowed = ['image/png', 'image/jpeg', 'image/webp']
+      if (!allowed.includes(profileLogoFile.type)) {
+        setError('Please choose a PNG, JPG or WebP image.')
+        setBusy('')
+        return
+      }
+      if (profileLogoFile.size > 2 * 1024 * 1024) {
+        setError('The logo must be 2 MB or smaller.')
+        setBusy('')
+        return
+      }
+      const extension = profileLogoFile.type === 'image/png' ? 'png' : profileLogoFile.type === 'image/webp' ? 'webp' : 'jpg'
+      const path = staffAccount.school_id + '/logo-' + Date.now() + '.' + extension
+      const upload = await supabase.storage.from('school-logos').upload(path, profileLogoFile, { contentType: profileLogoFile.type, upsert: false })
+      if (upload.error) {
+        setError(upload.error.message)
+        setBusy('')
+        return
+      }
+      nextLogoUrl = supabase.storage.from('school-logos').getPublicUrl(path).data.publicUrl
+    }
+    const { error } = await supabase.rpc('update_my_school_branding', {
+      p_motto: profileMotto,
+      p_logo_url: nextLogoUrl,
+    })
+    if (error) setError(error.message)
+    else {
+      setProfileLogoUrl(nextLogoUrl)
+      setProfileLogoFile(null)
+      setSchools(current => current.map(s => s.id === staffAccount.school_id ? { ...s, motto: profileMotto, logo_url: nextLogoUrl } : s))
+      setNotice('School logo and motto saved successfully.')
+    }
+    setBusy('')
+  }
+
   async function saveSchoolEdit(e: FormEvent) {
     e.preventDefault()
     if (!managedSchool) return
@@ -707,7 +753,7 @@ export default function App() {
     <aside className={sidebarOpen ? "sidebar drawer-open" : "sidebar"}><div className="brand"><span className="logo"><GraduationCap /></span><span>SMART MINDS<small>School management</small></span></div><p className="nav-title">WORKSPACE</p>
       <button className={page === 'dashboard' ? 'nav active' : 'nav'} onClick={() => navigate('dashboard')}><Activity /> Dashboard</button>
       <button className={page === 'apply' ? 'nav active' : 'nav'} onClick={() => navigate('apply')}><Building2 /> Register a school</button>
-      {canAccess('profile') && !admin && <button className={page === 'profile' ? 'nav active' : 'nav'} onClick={() => { const s = schools.find(item => item.id === staffAccount?.school_id); if (s) setProfileDraft({ name: s.name || '', school_type: s.school_type || 'primary_secondary', applicant_name: s.applicant_name || '', contact_email: s.contact_email || '', contact_phone: s.contact_phone || '', county: s.county || '', sub_county: s.sub_county || '', address: s.address || '', registration_number: s.registration_number || '' }); navigate('profile') }}><Building2 /> School profile & settings</button>}
+      {canAccess('profile') && !admin && <button className={page === 'profile' ? 'nav active' : 'nav'} onClick={() => { const s = schools.find(item => item.id === staffAccount?.school_id); if (s) { setProfileDraft({ name: s.name || '', school_type: s.school_type || 'primary_secondary', applicant_name: s.applicant_name || '', contact_email: s.contact_email || '', contact_phone: s.contact_phone || '', county: s.county || '', sub_county: s.sub_county || '', address: s.address || '', registration_number: s.registration_number || '' }); setProfileMotto(s.motto || ''); setProfileLogoUrl(s.logo_url || ''); setProfileLogoFile(null) } navigate('profile') }}><Building2 /> School profile & settings</button>}
       {canAccess('academic') && <button className={page === 'academic' ? 'nav active' : 'nav'} onClick={() => navigate('academic')}><GraduationCap /> Academic setup</button>}
       {canAccess('students') && <button className={page === 'students' ? 'nav active' : 'nav'} onClick={() => navigate('students')}><Users /> Students</button>}
       {canAccess('staff') && <button className={page === 'staff' ? 'nav active' : 'nav'} onClick={() => navigate('staff')}><Users /> Staff management</button>}
@@ -719,7 +765,7 @@ export default function App() {
     </aside>
     <button className={sidebarOpen ? "drawer-backdrop visible" : "drawer-backdrop"} aria-label="Close navigation" onClick={() => setSidebarOpen(false)} /><main className="main"><header><button className="menu-toggle" aria-label="Open navigation menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(!sidebarOpen)}><Menu /></button><div><p className="kicker">SMART MINDS PLATFORM</p><h1>{page === 'apply' ? 'School registration' : page === 'academic' ? 'Academic setup' : page === 'students' ? 'Student management' : page === 'attendance' ? 'Student attendance' : page === 'fees' ? 'Fees management' : page === 'fee-statements' ? 'Fee balances & statements' : page === 'fee-reports' ? 'Fee collection reports' : page === 'staff' ? 'Staff management' : page === 'profile' ? 'School profile & settings' : admin ? 'Platform overview' : 'My workspace'}</h1></div><span className="user-email">{session.user.email}</span></header>
       {error && <p className="alert error"><XCircle />{error}</p>}{notice && <p className="alert success"><CheckCircle2 />{notice}</p>}
-      {page !== 'dashboard' && page !== 'apply' && !canAccess(page) ? <section className="panel"><h2>Access restricted</h2><p className="muted">Your assigned role ({role.replace(/_/g, ' ') || 'unassigned'}) does not have permission to open this module.</p><button className="secondary" onClick={() => navigate('dashboard')}>Return to dashboard</button></section> : page === 'profile' ? <section className="panel"><p className="kicker">SCHOOL SETTINGS</p><h2>School profile</h2><p className="muted">Update the information displayed for your school. Only your school's Headteacher and School Admin can save changes.</p>{!schools.some(s => s.id === staffAccount?.school_id) ? <p className="muted">Your school record is loading or your staff account is not linked to a school.</p> : <form className="school-form" onSubmit={saveMySchoolProfile}><label>School name *<input required value={profileDraft.name} onChange={e => setProfileDraft({ ...profileDraft, name: e.target.value })} /></label><label>School type *<select value={profileDraft.school_type} onChange={e => setProfileDraft({ ...profileDraft, school_type: e.target.value })}><option value="primary_secondary">Primary & Secondary</option><option value="primary">Primary</option><option value="secondary">Secondary</option></select></label><label>Applicant / contact person<input value={profileDraft.applicant_name} onChange={e => setProfileDraft({ ...profileDraft, applicant_name: e.target.value })} /></label><label>Contact email<input type="email" value={profileDraft.contact_email} onChange={e => setProfileDraft({ ...profileDraft, contact_email: e.target.value })} /></label><label>Phone number<input value={profileDraft.contact_phone} onChange={e => setProfileDraft({ ...profileDraft, contact_phone: e.target.value })} /></label><label>County *<select required value={profileDraft.county} onChange={e => setProfileDraft({ ...profileDraft, county: e.target.value, sub_county: '' })}><option value="">Select county</option>{KENYA_COUNTIES.map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>Sub-county *<select required value={profileDraft.sub_county} onChange={e => setProfileDraft({ ...profileDraft, sub_county: e.target.value })} disabled={!profileDraft.county}><option value="">Select sub-county</option>{(SUB_COUNTIES_BY_COUNTY[profileDraft.county] || []).map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>Registration number<input value={profileDraft.registration_number} onChange={e => setProfileDraft({ ...profileDraft, registration_number: e.target.value })} /></label><label className="wide">Physical address<textarea rows={3} value={profileDraft.address} onChange={e => setProfileDraft({ ...profileDraft, address: e.target.value })} /></label><button className="primary wide" type="submit" disabled={busy === 'profile'}>{busy === 'profile' ? 'Saving…' : 'Save school profile'} <ArrowRight /></button></form>}</section> : page === 'academic' ? <AcademicManager schools={schools} /> : page === 'students' ? <StudentManager schools={schools} canManage={admin || ['school_admin', 'head_teacher', 'secretary'].includes(role)} /> : page === 'attendance' ? <AttendanceManager schools={schools} /> : page === 'fees' ? <FeesManager schools={schools} /> : page === 'fee-statements' ? <FeeStatements schools={schools} /> : page === 'fee-reports' ? <FeeReports schools={schools} /> : page === 'staff' ? <StaffManager schools={schools} /> : page === 'apply' ? <section className="panel"><p className="kicker">JOIN SMART MINDS</p><h2>Apply to register your school</h2><p className="muted">Applications are reviewed by the central Smart Minds administrator.</p>
+      {page !== 'dashboard' && page !== 'apply' && !canAccess(page) ? <section className="panel"><h2>Access restricted</h2><p className="muted">Your assigned role ({role.replace(/_/g, ' ') || 'unassigned'}) does not have permission to open this module.</p><button className="secondary" onClick={() => navigate('dashboard')}>Return to dashboard</button></section> : page === 'profile' ? <section className="panel"><p className="kicker">SCHOOL SETTINGS</p><h2>School profile</h2><p className="muted">Update the information displayed for your school. Only your school's Headteacher and School Admin can save changes.</p>{!schools.some(s => s.id === staffAccount?.school_id) ? <p className="muted">Your school record is loading or your staff account is not linked to a school.</p> : <form className="school-form" onSubmit={saveMySchoolProfile}><label>School name *<input required value={profileDraft.name} onChange={e => setProfileDraft({ ...profileDraft, name: e.target.value })} /></label><label>School type *<select value={profileDraft.school_type} onChange={e => setProfileDraft({ ...profileDraft, school_type: e.target.value })}><option value="primary_secondary">Primary & Secondary</option><option value="primary">Primary</option><option value="secondary">Secondary</option></select></label><label>Applicant / contact person<input value={profileDraft.applicant_name} onChange={e => setProfileDraft({ ...profileDraft, applicant_name: e.target.value })} /></label><label>Contact email<input type="email" value={profileDraft.contact_email} onChange={e => setProfileDraft({ ...profileDraft, contact_email: e.target.value })} /></label><label>Phone number<input value={profileDraft.contact_phone} onChange={e => setProfileDraft({ ...profileDraft, contact_phone: e.target.value })} /></label><label>County *<select required value={profileDraft.county} onChange={e => setProfileDraft({ ...profileDraft, county: e.target.value, sub_county: '' })}><option value="">Select county</option>{KENYA_COUNTIES.map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>Sub-county *<select required value={profileDraft.sub_county} onChange={e => setProfileDraft({ ...profileDraft, sub_county: e.target.value })} disabled={!profileDraft.county}><option value="">Select sub-county</option>{(SUB_COUNTIES_BY_COUNTY[profileDraft.county] || []).map(name => <option key={name} value={name}>{name}</option>)}</select></label><label>Registration number<input value={profileDraft.registration_number} onChange={e => setProfileDraft({ ...profileDraft, registration_number: e.target.value })} /></label><label className="wide">Physical address<textarea rows={3} value={profileDraft.address} onChange={e => setProfileDraft({ ...profileDraft, address: e.target.value })} /></label><button className="primary wide" type="submit" disabled={busy === 'profile'}>{busy === 'profile' ? 'Saving…' : 'Save school profile'} <ArrowRight /></button></form>}<div className="divider" /><h3>School branding</h3><p className="muted">Add your school motto and upload its logo (PNG, JPG or WebP, maximum 2 MB).</p><form className="school-form" onSubmit={saveMySchoolBranding}><label className="wide">School motto<input value={profileMotto} onChange={e => setProfileMotto(e.target.value)} placeholder="Enter your school motto" maxLength={180} /></label><label className="wide">School logo<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setProfileLogoFile(e.target.files?.[0] || null)} /></label>{profileLogoUrl && <div className="wide"><p className="muted">Current school logo</p><img src={profileLogoUrl} alt="Current school logo" style={{ maxWidth: 160, maxHeight: 160, objectFit: "contain", borderRadius: 8 }} /></div>}{profileLogoFile && <p className="muted wide">Selected: {profileLogoFile.name}</p>}<button className="primary wide" type="submit" disabled={busy === 'branding'}>{busy === 'branding' ? 'Saving branding…' : 'Save logo and motto'} <ArrowRight /></button></form></section> : page === 'academic' ? <AcademicManager schools={schools} /> : page === 'students' ? <StudentManager schools={schools} canManage={admin || ['school_admin', 'head_teacher', 'secretary'].includes(role)} /> : page === 'attendance' ? <AttendanceManager schools={schools} /> : page === 'fees' ? <FeesManager schools={schools} /> : page === 'fee-statements' ? <FeeStatements schools={schools} /> : page === 'fee-reports' ? <FeeReports schools={schools} /> : page === 'staff' ? <StaffManager schools={schools} /> : page === 'apply' ? <section className="panel"><p className="kicker">JOIN SMART MINDS</p><h2>Apply to register your school</h2><p className="muted">Applications are reviewed by the central Smart Minds administrator.</p>
         <form className="school-form" onSubmit={apply}>
           <label>School name *<input required value={schoolName} onChange={e => setSchoolName(e.target.value)} /></label>
           <label>School type *<select value={schoolType} onChange={e => setSchoolType(e.target.value)}><option value="primary_secondary">Primary & Secondary</option><option value="primary">Primary</option><option value="secondary">Secondary</option></select></label>
