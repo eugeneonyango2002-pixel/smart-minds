@@ -134,3 +134,13 @@ footer span{display:none}
 
 /* Developer attribution in the navigation drawer */
 .developer-credit{padding:12px 10px 6px;color:#9db6d2;font-size:10px;line-height:1.5;border-top:1px solid #ffffff20;margin-top:8px}.developer-credit b{display:block;color:#fff;font-size:11px;font-weight:700}
+
+
+/* Keep the sign-out action clearly visible at the bottom of the mobile drawer. */
+@media(max-width:680px){
+  .sidebar.drawer-open .sidebar-bottom{display:flex!important;flex:0 0 auto!important;gap:8px!important;padding:12px 0 18px!important;margin-top:auto!important;visibility:visible!important;opacity:1!important}
+  .sidebar.drawer-open .sidebar-bottom .developer-credit{display:block!important;flex:0 0 auto!important}
+  .sidebar.drawer-open .sidebar-bottom button.nav{display:flex!important;visibility:visible!important;opacity:1!important;width:100%!important;min-height:48px!important;height:48px!important;flex:0 0 48px!important;justify-content:flex-start!important;padding:0 14px!important;margin:0!important;background:#ffffff18!important;color:#ffffff!important;font-size:13px!important;font-weight:700!important;gap:12px!important}
+  .sidebar.drawer-open .sidebar-bottom button.nav svg{display:block!important;width:19px!important;height:19px!important;flex-shrink:0!important}
+  .sidebar.drawer-open .sidebar-bottom button.nav:after{content:"Sign out";display:inline!important;color:#ffffff!important;font-size:13px!important}
+}
