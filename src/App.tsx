@@ -260,6 +260,22 @@ export default function App() {
 
   const pending = schools.filter(s => s.status === 'pending').length
   const approved = schools.filter(s => s.status === 'approved').length
+  const rejected = schools.filter(s => s.status === 'rejected').length
+  const suspended = schools.filter(s => s.status === 'suspended').length
+  const countyCounts = Object.entries(schools.reduce<Record<string, number>>((acc, school) => {
+    const key = school.county?.trim() || 'County not specified'
+    acc[key] = (acc[key] || 0) + 1
+    return acc
+  }, {})).sort((a, b) => b[1] - a[1]).slice(0, 8)
+  const registrationMonths = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date()
+    date.setDate(1)
+    date.setMonth(date.getMonth() - (5 - index))
+    const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0')
+    return { key, label: date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }), count: schools.filter(s => s.created_at?.slice(0, 7) === key).length }
+  })
+  const maxMonthlyRegistrations = Math.max(1, ...registrationMonths.map(month => month.count))
+  const maxCountyRegistrations = Math.max(1, ...countyCounts.map(([, count]) => count))
   const auditActions = Array.from(new Set(auditLogs.map(log => String(log.action || '').trim()).filter(Boolean))).sort()
   const filteredAuditLogs = auditLogs.filter(log => {
     const schoolMatch = auditSchoolFilter === 'all' || log.school_id === auditSchoolFilter
@@ -307,6 +323,31 @@ export default function App() {
         <div className="welcome"><div><p className="kicker">{admin ? 'CENTRAL ADMINISTRATION' : 'SCHOOL ACCOUNT'}</p><h2>{admin ? 'Platform overview' : 'Welcome to Smart Minds'}</h2><p className="muted">{admin ? 'Review applications and manage registered schools.' : 'Your school applications and memberships will appear here.'}</p></div><button className="secondary" onClick={() => void loadSchools()}><RefreshCw /> Refresh</button></div>
         {admin ? <>
           <div className="stats"><article className="panel"><Building2 /><span>Total schools</span><b>{schools.length}</b></article><article className="panel"><Activity /><span>Pending applications</span><b>{pending}</b></article><article className="panel"><CheckCircle2 /><span>Approved schools</span><b>{approved}</b></article><article className="panel"><Users /><span>Platform role</span><b className="role">Super Admin</b></article></div>
+          <section className="panel">
+            <div className="panel-heading"><div><h2>Platform analytics</h2><p className="muted">Live overview calculated from registered school records.</p></div><span>{schools.length} total schools</span></div>
+            <div className="stats">
+              <article className="panel"><Building2 /><span>Total schools</span><b>{schools.length}</b></article>
+              <article className="panel"><Activity /><span>Pending</span><b>{pending}</b></article>
+              <article className="panel"><CheckCircle2 /><span>Approved</span><b>{approved}</b></article>
+              <article className="panel"><XCircle /><span>Rejected</span><b>{rejected}</b></article>
+              <article className="panel"><ShieldCheck /><span>Suspended</span><b>{suspended}</b></article>
+            </div>
+            <div className="school-form" style={{ marginTop: 18, alignItems: 'start' }}>
+              <div className="panel" style={{ minWidth: 0 }}>
+                <h3>School registrations · Last 6 months</h3>
+                {registrationMonths.map(month => <div key={month.key} style={{ display: 'grid', gridTemplateColumns: '64px 1fr 28px', gap: 10, alignItems: 'center', margin: '13px 0' }}>
+                  <small>{month.label}</small><div style={{ height: 12, background: 'var(--border, #e5e7eb)', borderRadius: 20, overflow: 'hidden' }}><div style={{ height: '100%', width: (month.count / maxMonthlyRegistrations * 100) + '%', background: 'var(--primary, #2563eb)', borderRadius: 20, minWidth: month.count ? 4 : 0 }} /></div><b>{month.count}</b>
+                </div>)}
+              </div>
+              <div className="panel" style={{ minWidth: 0 }}>
+                <h3>Schools by county</h3>
+                {countyCounts.length === 0 ? <p className="muted">County information will appear when schools are registered.</p> : countyCounts.map(([name, count]) => <div key={name} style={{ display: 'grid', gridTemplateColumns: 'minmax(90px, 1fr) 1.2fr 24px', gap: 10, alignItems: 'center', margin: '13px 0' }}>
+                  <small>{name}</small><div style={{ height: 12, background: 'var(--border, #e5e7eb)', borderRadius: 20, overflow: 'hidden' }}><div style={{ height: '100%', width: (count / maxCountyRegistrations * 100) + '%', background: 'var(--primary, #2563eb)', borderRadius: 20 }} /></div><b>{count}</b>
+                </div>)}
+              </div>
+            </div>
+            <p className="muted" style={{ marginTop: 12 }}>Registration trend uses the latest six calendar months. County chart shows up to eight counties with the most registered schools.</p>
+          </section>
           <section className="panel"><div className="panel-heading"><h2>School applications & administration</h2><span>{schools.length} records</span></div>
             {schools.length === 0 ? <div className="empty"><Building2 /><h3>No applications yet</h3><p>New school applications will appear here for review.</p><button className="secondary" onClick={() => setPage('apply')}>Create a test application</button></div> : <div className="table-wrap"><table><thead><tr><th>School</th><th>Applicant</th><th>County</th><th>Reference</th><th>Status</th><th>Actions</th></tr></thead><tbody>{schools.map(s => <tr key={s.id}><td><b>{s.name}</b><small>{s.school_type}</small></td><td>{s.applicant_name || '—'}<small>{s.contact_email}</small></td><td>{s.county || '—'}</td><td><code>{s.application_number}</code></td><td><span className={'status ' + s.status}>{s.status}</span></td><td><div className="actions"><button disabled={busy === s.id} onClick={() => { setManagedSchool(s); setEditingSchool(false) }}>View</button>{s.status !== 'pending' && <button disabled={busy === s.id} onClick={() => startSchoolEdit(s)}>Edit</button>}{s.status === 'pending' ? <><button disabled={busy === s.id} onClick={() => void review(s.id, 'approve')}>Approve</button><button disabled={busy === s.id} onClick={() => void review(s.id, 'reject')}>Reject</button></> : s.status === 'approved' ? <button disabled={busy === s.id} onClick={() => void changeSchoolStatus(s, 'suspend')}>Suspend</button> : s.status === 'suspended' ? <button disabled={busy === s.id} onClick={() => void changeSchoolStatus(s, 'activate')}>Activate</button> : null}</div></td></tr>)}</tbody></table></div>}
             {managedSchool && <div className="panel" style={{ marginTop: 20 }}>
