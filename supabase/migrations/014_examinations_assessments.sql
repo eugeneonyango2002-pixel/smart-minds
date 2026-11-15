@@ -20,7 +20,7 @@ create table if not exists public.examinations (
   constraint examination_year_same_school_fk foreign key (school_id, academic_year_id)
     references public.academic_years(school_id, id) on delete cascade,
   constraint examination_term_same_school_fk foreign key (school_id, term_id)
-    references public.terms(school_id, id) on delete set null,
+    references public.terms(school_id, id),
   constraint examination_class_same_school_fk foreign key (school_id, class_id)
     references public.classes(school_id, id) on delete cascade
 );
