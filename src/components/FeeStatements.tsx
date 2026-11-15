@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { FileText, Printer, RefreshCw, Search, Wallet, XCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
-type School = { id: string; name: string }
+type School = { id: string; name: string; motto?: string | null; logo_url?: string | null }
 type Student = { id: string; admission_number: string; first_name: string; middle_name: string | null; last_name: string; class_id: string | null; status: string }
 type ClassRow = { id: string; name: string }
 type Year = { id: string; name: string }
@@ -74,6 +74,7 @@ export default function FeeStatements({ schools }: { schools: School[] }) {
   const summaries = matchingStudents.map(student => ({ student, ...statementFor(student) }))
   const totals = summaries.reduce((acc, s) => ({ charged: acc.charged + s.charged, paid: acc.paid + s.paid, balance: acc.balance + s.balance }), { charged: 0, paid: 0, balance: 0 })
   const selected = students.find(s => s.id === studentId)
+  const selectedSchool = schools.find(s => s.id === schoolId)
   const statement = selected ? statementFor(selected) : null
   const className = (id: string | null) => classes.find(c => c.id === id)?.name || 'Unassigned'
 
@@ -97,7 +98,7 @@ export default function FeeStatements({ schools }: { schools: School[] }) {
         {summaries.map(s => <tr key={s.student.id}><td><b>{s.student.admission_number}</b></td><td>{fullName(s.student)}</td><td>{className(s.student.class_id)}</td><td>{money(s.charged)}</td><td>{money(s.paid)}</td><td><b>{money(s.balance)}</b></td><td><button className="secondary" onClick={() => setStudentId(s.student.id)}>View statement</button></td></tr>)}
       </tbody></table></div>}
     {selected && statement && <section className="statement-paper">
-      <div className="statement-title"><div><p className="kicker">SMART MINDS · SCHOOL FINANCE</p><h2>STUDENT FEE STATEMENT</h2><p>{schools.find(s => s.id === schoolId)?.name || 'School'}</p></div><div className="statement-actions no-print"><button className="secondary" onClick={() => setStudentId('')}>Close</button><button className="primary" onClick={() => window.print()}><Printer /> Print / Save PDF</button></div></div>
+      <div className="statement-title"><div style={{ display:'flex', alignItems:'center', gap:14 }}>{selectedSchool?.logo_url&&<img src={selectedSchool.logo_url} alt={selectedSchool.name+' logo'} style={{ width:68, height:68, objectFit:'contain' }}/>}<div><p className="kicker">{selectedSchool?.name || 'SMART MINDS'}</p>{selectedSchool?.motto&&<p>{selectedSchool.motto}</p>}<h2>STUDENT FEE STATEMENT</h2></div></div><div className="statement-actions no-print"><button className="secondary" onClick={() => setStudentId('')}>Close</button><button className="primary" onClick={() => window.print()}><Printer /> Print / Save PDF</button></div></div>
       <div className="statement-meta"><div><span>Student</span><b>{fullName(selected)}</b></div><div><span>Admission number</span><b>{selected.admission_number}</b></div><div><span>Class</span><b>{className(selected.class_id)}</b></div><div><span>Academic year</span><b>{years.find(y => y.id === yearId)?.name || '—'}</b></div><div><span>Term</span><b>{termId ? availableTerms.find(t => t.id === termId)?.name : 'All terms'}</b></div><div><span>Statement date</span><b>{new Date().toLocaleDateString('en-KE')}</b></div></div>
       <div className="statement-totals"><div><span>Fees charged</span><b>{money(statement.charged)}</b></div><div><span>Paid</span><b>{money(statement.paid)}</b></div><div><span>Outstanding</span><b>{money(statement.balance)}</b></div></div>
       <h3>Fee items and balances</h3>
