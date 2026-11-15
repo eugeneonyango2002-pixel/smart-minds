@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 type School = { id: string; name: string }
 type ClassRow = { id: string; name: string }
 type StreamRow = { id: string; name: string; class_id: string }
-type Student = { id:string; admission_number:string; first_name:string; middle_name:string|null; last_name:string; gender:string; date_of_birth:string|null; admission_date:string; class_id:string|null; stream_id:string|null; guardian_name:string|null; guardian_phone:string|null; status:string }
+type Student = { id:string; admission_number:string; first_name:string; middle_name:string|null; last_name:string; gender:string; date_of_birth:string|null; admission_date:string; class_id:string|null; stream_id:string|null; guardian_name:string|null; guardian_relationship?:string|null; guardian_phone:string|null; guardian_email?:string|null; address?:string|null; status:string }
 const blank = { admission_number:'', first_name:'', middle_name:'', last_name:'', gender:'', date_of_birth:'', admission_date:new Date().toISOString().slice(0,10), class_id:'', stream_id:'', guardian_name:'', guardian_relationship:'', guardian_phone:'', guardian_email:'', address:'' }
 export default function StudentManager({ schools, canManage = true }: { schools: School[]; canManage?: boolean }) {
   const [schoolId,setSchoolId]=useState(''),[students,setStudents]=useState<Student[]>([]),[classes,setClasses]=useState<ClassRow[]>([]),[streams,setStreams]=useState<StreamRow[]>([])
@@ -21,7 +21,7 @@ export default function StudentManager({ schools, canManage = true }: { schools:
   const visible=useMemo(()=>students.filter(s=>(s.first_name+' '+(s.middle_name||'')+' '+s.last_name+' '+s.admission_number).toLowerCase().includes(search.toLowerCase())),[students,search])
   function cancelForm(){setAdding(false);setEditingStudentId(null);setForm(blank)}
   function startEdit(s:Student){
-    setEditingStudentId(s.id);setForm({admission_number:s.admission_number,first_name:s.first_name,middle_name:s.middle_name||'',last_name:s.last_name,gender:s.gender,date_of_birth:s.date_of_birth||'',admission_date:s.admission_date,class_id:s.class_id||'',stream_id:s.stream_id||'',guardian_name:s.guardian_name||'',guardian_relationship:'',guardian_phone:s.guardian_phone||'',guardian_email:'',address:''})
+    setEditingStudentId(s.id);setForm({admission_number:s.admission_number,first_name:s.first_name,middle_name:s.middle_name||'',last_name:s.last_name,gender:s.gender,date_of_birth:s.date_of_birth||'',admission_date:s.admission_date,class_id:s.class_id||'',stream_id:s.stream_id||'',guardian_name:s.guardian_name||'',guardian_relationship:s.guardian_relationship||'',guardian_phone:s.guardian_phone||'',guardian_email:s.guardian_email||'',address:s.address||''})
     setAdding(true);setError('');setNotice('')
   }
   async function save(e:FormEvent){
