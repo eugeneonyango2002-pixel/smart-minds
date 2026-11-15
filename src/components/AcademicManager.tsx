@@ -38,7 +38,7 @@ export default function AcademicManager({ schools }: { schools: School[] }) {
   async function save(e: FormEvent) {
     e.preventDefault(); if (!schoolId) return
     setBusy(true); setError(''); setNotice('')
-    const payload = { ...form, school_id: schoolId }
+    const payload: Record<string, unknown> = { ...form, school_id: schoolId }
     if (tab === 'classes') payload.sort_order = form.sort_order || '0'
     const {error} = await supabase.from(config[tab].table).insert(payload)
     if (error) setError(error.message)
@@ -54,7 +54,7 @@ export default function AcademicManager({ schools }: { schools: School[] }) {
   function display(row: Row, col: string) {
     if (col === 'class_id') return classes.find(c=>c.id===row[col])?.name || '—'
     if (col === 'academic_year_id') return years.find(y=>y.id===row[col])?.name || '—'
-    return String(row[col] ?? '—').replaceAll('_',' ')
+    return String(row[col] ?? '—').replace(/_/g,' ')
   }
   return <section className="panel academic-panel">
     <div className="academic-head"><div><p className="kicker">SCHOOL SETUP</p><h2>Academic structure</h2><p className="muted">Set up the academic calendar, classes and subjects for each school.</p></div><button className="secondary" onClick={()=>void loadRows()}><RefreshCw/> Refresh</button></div>
@@ -63,6 +63,6 @@ export default function AcademicManager({ schools }: { schools: School[] }) {
     <div className="panel-heading"><h2>{current.title}</h2><button className="primary" disabled={!schoolId} onClick={()=>setAdding(!adding)}><Plus/> Add {current.title.replace(/s$/,'')}</button></div>
     {adding && <form className="academic-form" onSubmit={save}>{current.fields.map(f=><label key={f.key}>{f.label}{f.type==='year'?<select required value={form[f.key]||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}><option value="">Choose academic year</option>{years.map(y=><option key={y.id} value={y.id}>{y.name}</option>)}</select>:f.type==='class'?<select required value={form[f.key]||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}><option value="">Choose class</option>{classes.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>:f.type==='select'?<select required={f.required} value={form[f.key]||f.options?.[0]?.value||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}>{f.options?.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:<input required={f.required} type={f.type||'text'} value={form[f.key]||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}/>}</label>)}<div className="academic-form-actions"><button type="button" className="secondary" onClick={()=>setAdding(false)}>Cancel</button><button className="primary" disabled={busy}>{busy?'Saving…':'Save record'}</button></div></form>}
     {error&&<p className="alert error"><XCircle/>{error}</p>}{notice&&<p className="alert success"><CheckCircle2/>{notice}</p>}
-    {rows.length===0?<div className="empty"><BookOpen/><h3>No {current.title.toLowerCase()} yet</h3><p>Add your first record using the button above.</p></div>:<div className="table-wrap"><table><thead><tr>{current.columns.map(c=><th key={c}>{c.replaceAll('_',' ')}</th>)}<th>Action</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}>{current.columns.map(c=><td key={c}>{display(row,c)}</td>)}<td><button className="delete-row" onClick={()=>void remove(row.id)}>Delete</button></td></tr>)}</tbody></table></div>}
+    {rows.length===0?<div className="empty"><BookOpen/><h3>No {current.title.toLowerCase()} yet</h3><p>Add your first record using the button above.</p></div>:<div className="table-wrap"><table><thead><tr>{current.columns.map(c=><th key={c}>{c.replace(/_/g,' ')}</th>)}<th>Action</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}>{current.columns.map(c=><td key={c}>{display(row,c)}</td>)}<td><button className="delete-row" onClick={()=>void remove(row.id)}>Delete</button></td></tr>)}</tbody></table></div>}
   </section>
 }
