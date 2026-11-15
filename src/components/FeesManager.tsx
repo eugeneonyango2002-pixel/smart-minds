@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Wallet, Plus, RefreshCw, Search, XCircle, CheckCircle2, FileText } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
-type School = { id: string; name: string }
+type School = { id: string; name: string; motto?: string | null; logo_url?: string | null }
 type Row = { id: string; name: string }
 type Student = { id: string; admission_number: string; first_name: string; middle_name: string | null; last_name: string; class_id: string | null; status: string }
 type Fee = { id: string; class_id: string; academic_year_id: string; term_id: string | null; item_name: string; amount_kes: number; due_date: string | null }
@@ -72,6 +72,7 @@ export default function FeesManager({ schools }: { schools: School[] }) {
   const totalCollected=payments.reduce((sum,p)=>sum+Number(p.amount_kes),0)
   const receiptStudent=receiptPayment?students.find(s=>s.id===receiptPayment.student_id):null
   const receiptFee=receiptPayment?fees.find(f=>f.id===receiptPayment.fee_structure_id):null
+  const selectedSchool=schools.find(s=>s.id===schoolId)
   const money=(n:number)=>'KES '+n.toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2})
   return <section className="panel fees-panel">
     <div className="academic-head"><div><p className="kicker">SCHOOL FINANCE</p><h2>Fees management</h2><p className="muted">Set class fee charges, record learner payments and track balances.</p></div><button className="secondary" onClick={()=>void load()}><RefreshCw/> Refresh</button></div>
@@ -102,7 +103,7 @@ export default function FeesManager({ schools }: { schools: School[] }) {
     <div className="panel-heading"><h2>Recent payments</h2><span>{visiblePayments.length} records shown</span></div>
     {visiblePayments.length===0?<div className="empty"><Wallet/><h3>No payments found</h3><p>Recorded learner payments will appear here.</p></div>:<div className="table-wrap"><table><thead><tr><th>Date</th><th>Student</th><th>Fee item</th><th>Amount</th><th>Method</th><th>Reference</th><th>Receipt</th></tr></thead><tbody>{visiblePayments.map(p=>{const s=students.find(x=>x.id===p.student_id);const f=fees.find(x=>x.id===p.fee_structure_id);return <tr key={p.id}><td>{p.payment_date}</td><td><b>{s? s.first_name+' '+s.last_name:'Learner'}</b><small>{s?.admission_number||''}</small></td><td>{f?.item_name||'Fee item'}</td><td><b>KES {Number(p.amount_kes).toLocaleString('en-KE',{minimumFractionDigits:2})}</b></td><td>{p.payment_method.toUpperCase()}</td><td>{p.transaction_reference||'—'}</td><td><button className="secondary" onClick={()=>setReceiptPayment(p)}>View receipt</button></td></tr>})}</tbody></table></div>}
     {receiptPayment&&<div className="receipt-overlay no-print"><section className="receipt-paper" aria-label="Payment receipt">
-      <div className="receipt-head"><div><p className="kicker">SMART MINDS · SCHOOL FINANCE</p><h2>OFFICIAL PAYMENT RECEIPT</h2><p>Payment acknowledgement</p></div><button className="secondary no-print" onClick={()=>setReceiptPayment(null)}>Close</button></div>
+      <div className="receipt-head"><div style={{ display:'flex', alignItems:'center', gap:14 }}>{selectedSchool?.logo_url&&<img src={selectedSchool.logo_url} alt={selectedSchool.name+' logo'} style={{ width:68, height:68, objectFit:'contain' }}/>}<div><p className="kicker">{selectedSchool?.name||'SMART MINDS'}</p>{selectedSchool?.motto&&<p>{selectedSchool.motto}</p>}<h2>OFFICIAL PAYMENT RECEIPT</h2><p>Payment acknowledgement</p></div></div><button className="secondary no-print" onClick={()=>setReceiptPayment(null)}>Close</button></div>
       <div className="receipt-number"><span>Receipt number</span><b>{receiptPayment.receipt_number}</b></div>
       <div className="receipt-details">
         <div><span>Received from</span><b>{receiptStudent?[receiptStudent.first_name,receiptStudent.middle_name,receiptStudent.last_name].filter(Boolean).join(' '):'Learner'}</b></div>
