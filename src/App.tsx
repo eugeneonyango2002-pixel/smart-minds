@@ -37,6 +37,8 @@ export default function App() {
   const [notice, setNotice] = useState('')
   const [admin, setAdmin] = useState(false)
   const [schools, setSchools] = useState<School[]>([])
+  const [auditLogs, setAuditLogs] = useState<any[]>([])
+  const [auditLoading, setAuditLoading] = useState(false)
   const [managedSchool, setManagedSchool] = useState<School | null>(null)
   const [editingSchool, setEditingSchool] = useState(false)
   const [schoolDraft, setSchoolDraft] = useState({ name: '', school_type: 'primary_secondary', applicant_name: '', contact_email: '', contact_phone: '', county: '', sub_county: '', address: '', registration_number: '' })
@@ -110,6 +112,15 @@ export default function App() {
     else setSchools((data || []) as School[])
   }
 
+  async function loadAuditLogs() {
+    setAuditLoading(true); setError('')
+    const { data, error } = await supabase.from('audit_logs')
+      .select('id, school_id, actor_user_id, action, entity_table, entity_id, details, created_at')
+      .order('created_at', { ascending: false }).limit(100)
+    if (error) setError(error.message)
+    else setAuditLogs(data || [])
+    setAuditLoading(false)
+  }
   async function authenticate(e: FormEvent) {
     e.preventDefault(); setError(''); setNotice('')
     if (mode === 'login') {
@@ -295,6 +306,10 @@ export default function App() {
                 <p><b>School:</b> {managedSchool.name}</p><p><b>Type:</b> {managedSchool.school_type.replace(/_/g, ' ')}</p><p><b>Status:</b> {managedSchool.status}</p><p><b>Applicant:</b> {managedSchool.applicant_name || '—'}</p><p><b>Email:</b> {managedSchool.contact_email || '—'}</p><p><b>Phone:</b> {managedSchool.contact_phone || '—'}</p><p><b>County:</b> {managedSchool.county || '—'}</p><p><b>Sub-county:</b> {managedSchool.sub_county || '—'}</p><p><b>Registration:</b> {managedSchool.registration_number || '—'}</p><p><b>Address:</b> {managedSchool.address || '—'}</p><p><b>Application reference:</b> {managedSchool.application_number}</p>
               </div>}
             </div>}
+          </section>
+          <section className="panel">
+            <div className="panel-heading"><div><h2>Audit log</h2><p className="muted">Recent platform administration activity (latest 100 records).</p></div><button className="secondary" onClick={() => void loadAuditLogs()} disabled={auditLoading}><RefreshCw /> {auditLoading ? "Loading…" : "Load audit log"}</button></div>
+            {auditLogs.length === 0 ? <div className="empty"><FileText /><h3>No audit records loaded</h3><p>Select “Load audit log” to view recorded administration activity.</p></div> : <div className="table-wrap"><table><thead><tr><th>Date & time</th><th>Action</th><th>School</th><th>Performed by (user ID)</th><th>Details</th></tr></thead><tbody>{auditLogs.map(log => <tr key={log.id}><td>{new Date(log.created_at).toLocaleString()}</td><td><b>{String(log.action || "").replace(/_/g, " ")}</b><small>{log.entity_table || "—"}</small></td><td>{schools.find(s => s.id === log.school_id)?.name || (log.school_id ? log.school_id.slice(0, 8) + "…" : "—")}</td><td><code>{log.actor_user_id || "—"}</code></td><td><small>{typeof log.details === "string" ? log.details : JSON.stringify(log.details || {})}</small></td></tr>)}</tbody></table></div>}
           </section>
         </> : <section className="panel">
           <div className="empty"><Building2 /><h3>Welcome to Smart Minds</h3><p>Use the invitation code from your school to link your staff account. Make sure you are signed in with the email address registered by your school.</p></div>
