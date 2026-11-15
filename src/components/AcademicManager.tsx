@@ -117,6 +117,27 @@ export default function AcademicManager({ schools }: { schools: School[] }) {
       setError(e instanceof Error ? e.message : 'Could not create the CBC subject catalogue.')
     } finally { setBusy(false) }
   }
+  async function createDefaultStreams() {
+    if (!schoolId) return
+    const answer = window.prompt('Enter the stream names separated by commas. Example: A, B', 'A, B')
+    if (answer === null) return
+    const names = Array.from(new Set(answer.split(',').map(name => name.trim()).filter(Boolean)))
+    if (!names.length) { setError('Enter at least one stream name.'); return }
+    if (!window.confirm('Create ' + names.length + ' stream(s) (' + names.join(', ') + ') for every class in this school? Existing matching streams will be kept.')) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const { data: savedClasses, error: classesError } = await supabase.from('classes').select('id,name').eq('school_id', schoolId)
+      if (classesError) throw classesError
+      if (!savedClasses?.length) throw new Error('Create the school classes first, then add streams.')
+      const streamRows = savedClasses.flatMap(c => names.map(name => ({ school_id: schoolId, class_id: c.id, name })))
+      const { error: streamError } = await supabase.from('streams').upsert(streamRows, { onConflict: 'class_id,name', ignoreDuplicates: true })
+      if (streamError) throw streamError
+      setNotice('Streams ready: ' + names.length + ' stream(s) checked or created across ' + savedClasses.length + ' classes.')
+      if (tab === 'streams') await loadRows()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not create class streams.')
+    } finally { setBusy(false) }
+  }
   async function save(e: FormEvent) {
     e.preventDefault(); if (!schoolId) return
     setBusy(true); setError(''); setNotice('')
@@ -143,6 +164,7 @@ export default function AcademicManager({ schools }: { schools: School[] }) {
     <label className="school-picker">Select school<select value={schoolId} onChange={e=>{setSchoolId(e.target.value);setAdding(false)}}>{schools.map(s=><option key={s.id} value={s.id}>{s.name} · {s.status}</option>)}</select></label>
     <div className="setup-automatic"><div><b>Quick setup for Kenya · 2027</b><p>Creates the academic year, three terms and CBC classes from PP1 to Grade 12. Matching records are not duplicated.</p><small>Term dates follow the 2027 primary and junior school calendar. Confirm senior-school dates with your school before using them.</small></div><button className="primary" disabled={!schoolId || busy} onClick={()=>void automaticSetup()}><Sparkles/>{busy?'Setting up…':'Set up automatically'}</button></div>
     <div className="setup-automatic"><div><b>Kenyan CBC subject catalogue</b><p>Creates learning areas for PP1–Grade 12 and links core subjects to the relevant classes.</p><small>Senior-school pathway electives are kept separate so the school can select only the subjects it is approved and equipped to offer.</small></div><button className="primary" disabled={!schoolId || busy} onClick={()=>void createSubjectCatalogue()}><Sparkles/>{busy?"Creating…":"Create CBC subjects"}</button></div>
+    <div className="setup-automatic"><div><b>Automatic class streams</b><p>Create the stream names you use across every class. You can enter names such as A, B, East, West or Red, Blue.</p><small>Existing matching streams are preserved. You can also manage individual streams in the Streams tab.</small></div><button className="primary" disabled={!schoolId || busy} onClick={()=>void createDefaultStreams()}><Sparkles/>{busy?'Creating…':'Create class streams'}</button></div>
     <div className="academic-tabs">{(Object.keys(config) as Tab[]).map(t=><button key={t} className={tab===t?'selected':''} onClick={()=>{setTab(t);setAdding(false);setForm({})}}>{config[t].title}</button>)}</div>
     <div className="panel-heading"><h2>{current.title}</h2><button className="primary" disabled={!schoolId} onClick={()=>setAdding(!adding)}><Plus/> Add {current.title.replace(/s$/,'')}</button></div>
     {adding && <form className="academic-form" onSubmit={save}>{current.fields.map(f=><label key={f.key}>{f.label}{f.type==='year'?<select required value={form[f.key]||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}><option value="">Choose academic year</option>{years.map(y=><option key={y.id} value={y.id}>{y.name}</option>)}</select>:f.type==='class'?<select required value={form[f.key]||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}><option value="">Choose class</option>{classes.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>:f.type==='select'?<select required={f.required} value={form[f.key]||f.options?.[0]?.value||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}>{f.options?.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:<input required={f.required} type={f.type||'text'} value={form[f.key]||''} onChange={e=>setForm({...form,[f.key]:e.target.value})}/>}</label>)}<div className="academic-form-actions"><button type="button" className="secondary" onClick={()=>setAdding(false)}>Cancel</button><button className="primary" disabled={busy}>{busy?'Saving…':'Save record'}</button></div></form>}
