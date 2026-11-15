@@ -2,16 +2,13 @@
 -- Requires 009_staff_login_roles.sql and its public.has_school_role(uuid,text[]) helper.
 
 do $$
-declare t text;
 begin
-  foreach t in array array['academic_years','terms','classes','streams','subjects','class_subjects'] loop
-    execute format('drop policy if exists "Academic read" on public.%I', t);
-    execute format('drop policy if exists "Academic manage" on public.%I', t);
-    execute format(
-      'create policy "Academic read" on public.%I for select to authenticated using (public.is_platform_admin() or public.has_school_role(school_id, array[''school_admin'',''head_teacher'',''deputy_head_teacher'',''teacher'',''bursar'',''secretary'']::text[]))', t);
-    execute format(
-      'create policy "Academic manage" on public.%I for all to authenticated using (public.has_school_role(school_id, array[''school_admin'',''head_teacher'',''deputy_head_teacher'']::text[])) with check (public.has_school_role(school_id, array[''school_admin'',''head_teacher'',''deputy_head_teacher'']::text[]))', t);
-  end loop;
+  drop policy if exists "Academic years school access" on public.academic_years;
+  drop policy if exists "Terms school access" on public.terms;
+  drop policy if exists "Classes school access" on public.classes;
+  drop policy if exists "Streams school access" on public.streams;
+  drop policy if exists "Subjects school access" on public.subjects;
+  drop policy if exists "Class subjects school access" on public.class_subjects;
 end $$;
 
 -- Remove broad school-member policies before adding role-specific policies.
