@@ -39,6 +39,11 @@ export default function App() {
   const [schools, setSchools] = useState<School[]>([])
   const [auditLogs, setAuditLogs] = useState<any[]>([])
   const [auditLoading, setAuditLoading] = useState(false)
+  const [auditSearch, setAuditSearch] = useState('')
+  const [auditSchoolFilter, setAuditSchoolFilter] = useState('all')
+  const [auditActionFilter, setAuditActionFilter] = useState('all')
+  const [auditFromDate, setAuditFromDate] = useState('')
+  const [auditToDate, setAuditToDate] = useState('')
   const [managedSchool, setManagedSchool] = useState<School | null>(null)
   const [editingSchool, setEditingSchool] = useState(false)
   const [schoolDraft, setSchoolDraft] = useState({ name: '', school_type: 'primary_secondary', applicant_name: '', contact_email: '', contact_phone: '', county: '', sub_county: '', address: '', registration_number: '' })
@@ -255,6 +260,21 @@ export default function App() {
 
   const pending = schools.filter(s => s.status === 'pending').length
   const approved = schools.filter(s => s.status === 'approved').length
+  const auditActions = Array.from(new Set(auditLogs.map(log => String(log.action || '').trim()).filter(Boolean))).sort()
+  const filteredAuditLogs = auditLogs.filter(log => {
+    const schoolMatch = auditSchoolFilter === 'all' || log.school_id === auditSchoolFilter
+    const actionMatch = auditActionFilter === 'all' || log.action === auditActionFilter
+    const logDate = new Date(log.created_at)
+    const fromMatch = !auditFromDate || logDate >= new Date(auditFromDate + 'T00:00:00')
+    const toExclusive = auditToDate ? new Date(auditToDate + 'T00:00:00') : null
+    if (toExclusive) toExclusive.setDate(toExclusive.getDate() + 1)
+    const toMatch = !toExclusive || logDate < toExclusive
+    const detailsText = typeof log.details === 'string' ? log.details : JSON.stringify(log.details || {})
+    const schoolName = schools.find(s => s.id === log.school_id)?.name || ''
+    const haystack = [log.action, log.entity_table, log.actor_user_id, detailsText, schoolName].join(' ').toLowerCase()
+    const searchMatch = !auditSearch.trim() || haystack.includes(auditSearch.trim().toLowerCase())
+    return schoolMatch && actionMatch && fromMatch && toMatch && searchMatch
+  })
   return <div className="layout">
     <aside className={sidebarOpen ? "sidebar drawer-open" : "sidebar"}><div className="brand"><span className="logo"><GraduationCap /></span><span>SMART MINDS<small>School management</small></span></div><p className="nav-title">WORKSPACE</p>
       <button className={page === 'dashboard' ? 'nav active' : 'nav'} onClick={() => navigate('dashboard')}><Activity /> Dashboard</button>
@@ -309,7 +329,18 @@ export default function App() {
           </section>
           <section className="panel">
             <div className="panel-heading"><div><h2>Audit log</h2><p className="muted">Recent platform administration activity (latest 100 records).</p></div><button className="secondary" onClick={() => void loadAuditLogs()} disabled={auditLoading}><RefreshCw /> {auditLoading ? "Loading…" : "Load audit log"}</button></div>
-            {auditLogs.length === 0 ? <div className="empty"><FileText /><h3>No audit records loaded</h3><p>Select “Load audit log” to view recorded administration activity.</p></div> : <div className="table-wrap"><table><thead><tr><th>Date & time</th><th>Action</th><th>School</th><th>Performed by (user ID)</th><th>Details</th></tr></thead><tbody>{auditLogs.map(log => <tr key={log.id}><td>{new Date(log.created_at).toLocaleString()}</td><td><b>{String(log.action || "").replace(/_/g, " ")}</b><small>{log.entity_table || "—"}</small></td><td>{schools.find(s => s.id === log.school_id)?.name || (log.school_id ? log.school_id.slice(0, 8) + "…" : "—")}</td><td><code>{log.actor_user_id || "—"}</code></td><td><small>{typeof log.details === "string" ? log.details : JSON.stringify(log.details || {})}</small></td></tr>)}</tbody></table></div>}
+            {auditLogs.length === 0 ? <div className="empty"><FileText /><h3>No audit records loaded</h3><p>Select “Load audit log” to view recorded administration activity.</p></div> : <>
+              <div className="school-form" style={{ margin: '18px 0', alignItems: 'end' }}>
+                <label className="wide">Search audit records<input value={auditSearch} onChange={e => setAuditSearch(e.target.value)} placeholder="Search school, action, user ID or details…" /></label>
+                <label>Filter by school<select value={auditSchoolFilter} onChange={e => setAuditSchoolFilter(e.target.value)}><option value="all">All schools</option>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+                <label>Filter by action<select value={auditActionFilter} onChange={e => setAuditActionFilter(e.target.value)}><option value="all">All actions</option>{auditActions.map(action => <option key={action} value={action}>{action.replace(/_/g, ' ')}</option>)}</select></label>
+                <label>From date<input type="date" value={auditFromDate} onChange={e => setAuditFromDate(e.target.value)} /></label>
+                <label>To date<input type="date" min={auditFromDate || undefined} value={auditToDate} onChange={e => setAuditToDate(e.target.value)} /></label>
+                <button className="secondary" type="button" onClick={() => { setAuditSearch(''); setAuditSchoolFilter('all'); setAuditActionFilter('all'); setAuditFromDate(''); setAuditToDate('') }}>Clear filters</button>
+              </div>
+              <p className="muted">Showing {filteredAuditLogs.length} of {auditLogs.length} loaded records.</p>
+              {filteredAuditLogs.length === 0 ? <div className="empty"><FileText /><h3>No matching records</h3><p>Try changing or clearing your filters.</p></div> : <div className="table-wrap"><table><thead><tr><th>Date & time</th><th>Action</th><th>School</th><th>Performed by (user ID)</th><th>Details</th></tr></thead><tbody>{filteredAuditLogs.map(log => <tr key={log.id}><td>{new Date(log.created_at).toLocaleString()}</td><td><b>{String(log.action || "").replace(/_/g, " ")}</b><small>{log.entity_table || "—"}</small></td><td>{schools.find(s => s.id === log.school_id)?.name || (log.school_id ? log.school_id.slice(0, 8) + "…" : "—")}</td><td><code>{log.actor_user_id || "—"}</code></td><td><small>{typeof log.details === "string" ? log.details : JSON.stringify(log.details || {})}</small></td></tr>)}</tbody></table></div>}
+            </>}
           </section>
         </> : <section className="panel">
           <div className="empty"><Building2 /><h3>Welcome to Smart Minds</h3><p>Use the invitation code from your school to link your staff account. Make sure you are signed in with the email address registered by your school.</p></div>
