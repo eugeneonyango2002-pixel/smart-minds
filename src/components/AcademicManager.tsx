@@ -12,17 +12,49 @@ const config: Record<Tab, { table: string; title: string; fields: { key: string;
   streams: { table: 'streams', title: 'Streams', fields: [{key:'class_id',label:'Class',type:'class',required:true},{key:'name',label:'Stream name',required:true}], columns:['name','class_id'] },
   subjects: { table: 'subjects', title: 'Subjects', fields: [{key:'name',label:'Subject name',required:true},{key:'code',label:'Subject code'},{key:'category',label:'Category',type:'select',options:[{value:'core',label:'Core'},{value:'optional',label:'Optional'},{value:'co_curricular',label:'Co-curricular'}],required:true}], columns:['name','code','category'] },
 }
-type CatalogueSubject = { name: string; category: 'core' | 'optional'; grades: string[] }
-const primaryGrades = ['Grade 1','Grade 2','Grade 3']
-const upperGrades = ['Grade 4','Grade 5','Grade 6']
-const juniorGrades = ['Grade 7','Grade 8','Grade 9']
-const seniorGrades = ['Grade 10','Grade 11','Grade 12']
+type CatalogueSubject = { name: string; category: 'core' | 'co_curricular'; grades: string[]; lessonsPerWeek: number }
 const catalogue: CatalogueSubject[] = [
-  ...['Language Activities','Mathematical Activities','Environmental Activities','Psychomotor and Creative Activities','Religious Education Activities'].map(name => ({ name, category: 'core' as const, grades: ['PP1','PP2'] })),
-  ...['Indigenous Languages','Kiswahili / Kenya Sign Language','English','Mathematics','Environmental Activities','Creative Activities','Religious Education'].map(name => ({ name, category: 'core' as const, grades: primaryGrades })),
-  ...['English','Kiswahili / Kenya Sign Language','Mathematics','Science and Technology','Social Studies','Agriculture and Nutrition','Creative Arts','Religious Education'].map(name => ({ name, category: 'core' as const, grades: upperGrades })),
-  ...['English','Kiswahili / Kenya Sign Language','Mathematics','Integrated Science','Social Studies','Pre-Technical Studies','Agriculture','Creative Arts and Sports','Religious Education'].map(name => ({ name, category: 'core' as const, grades: juniorGrades })),
-  ...['English','Kiswahili / Kenya Sign Language','Mathematics','Community Service Learning'].map(name => ({ name, category: 'core' as const, grades: seniorGrades })),
+  ...[
+    { name: 'Creative Activities', lessonsPerWeek: 6 },
+    { name: 'Language Activities', lessonsPerWeek: 5 },
+    { name: 'Mathematical Activities', lessonsPerWeek: 5 },
+    { name: 'Environmental Activities', lessonsPerWeek: 5 },
+    { name: 'CRE', lessonsPerWeek: 3 },
+    { name: 'Pastoral Programme of Instruction (PPI)', lessonsPerWeek: 1, category: 'co_curricular' as const },
+  ].map(s => ({ ...s, category: s.category || 'core' as const, grades: ['PP1','PP2'] })),
+  ...[
+    { name: 'Creative Activities (Art Craft Music & PE)', lessonsPerWeek: 7 },
+    { name: 'English Language Activities', lessonsPerWeek: 5 },
+    { name: 'Mathematical Activities', lessonsPerWeek: 5 },
+    { name: 'Kiswahili', lessonsPerWeek: 4 },
+    { name: 'Environmental Activities (Includes Hygiene & Nutrition)', lessonsPerWeek: 4 },
+    { name: 'CRE', lessonsPerWeek: 3 },
+    { name: 'Indigenous Language Activities', lessonsPerWeek: 2 },
+    { name: 'Pastoral Programme of Instruction (PPI)', lessonsPerWeek: 1, category: 'co_curricular' as const },
+  ].map(s => ({ ...s, category: s.category || 'core' as const, grades: ['Grade 1','Grade 2','Grade 3'] })),
+  ...[
+    { name: 'Creative Arts (Art Craft Music & PHE)', lessonsPerWeek: 6 },
+    { name: 'English', lessonsPerWeek: 5 },
+    { name: 'Mathematics', lessonsPerWeek: 5 },
+    { name: 'Kiswahili', lessonsPerWeek: 4 },
+    { name: 'Science and Technology', lessonsPerWeek: 4 },
+    { name: 'Agriculture and Nutrition (Agriculture & Home Science)', lessonsPerWeek: 4 },
+    { name: 'Social Studies', lessonsPerWeek: 3 },
+    { name: 'CRE', lessonsPerWeek: 3 },
+    { name: 'Pastoral Programme of Instruction (PPI)', lessonsPerWeek: 1, category: 'co_curricular' as const },
+  ].map(s => ({ ...s, category: s.category || 'core' as const, grades: ['Grade 4','Grade 5','Grade 6'] })),
+  ...[
+    { name: 'English', lessonsPerWeek: 5 },
+    { name: 'Mathematics', lessonsPerWeek: 5 },
+    { name: 'Integrated Science (Biology Chemistry Physics & Health Ed)', lessonsPerWeek: 5 },
+    { name: 'Creative Arts and Sports (Visual Performing Arts & Sports)', lessonsPerWeek: 5 },
+    { name: 'Kiswahili', lessonsPerWeek: 4 },
+    { name: 'Social Studies (History Geography Citizenship & Life Skills)', lessonsPerWeek: 4 },
+    { name: 'Pre-Technical Studies (Pre-Technical Computer & Business)', lessonsPerWeek: 4 },
+    { name: 'Agriculture and Nutrition (Agriculture & Home Science)', lessonsPerWeek: 4 },
+    { name: 'CRE', lessonsPerWeek: 4 },
+    { name: 'Pastoral Programme of Instruction (PPI)', lessonsPerWeek: 1, category: 'co_curricular' as const },
+  ].map(s => ({ ...s, category: s.category || 'core' as const, grades: ['Grade 7','Grade 8','Grade 9'] })),
 ]
 const standardClasses = [
   { name: 'PP1', level: 'pre_primary', sort_order: 1 },
@@ -55,7 +87,7 @@ export default function AcademicManager({ schools }: { schools: School[] }) {
     if (error) setError(error.message); else setRows((data || []) as Row[])
   }
   async function automaticSetup() {
-    if (!schoolId || !window.confirm('Automatically add the 2027 academic year, its three terms, and all standard CBC classes (PP1–Grade 12) for this school? Existing matching records will be kept.')) return
+    if (!schoolId || !window.confirm('Automatically add the 2027 academic year, its three terms, and standard classes (PP1–Grade 12) for this school? Existing matching records will be kept.')) return
     setBusy(true); setError(''); setNotice('')
     try {
       const { data: year, error: yearError } = await supabase.from('academic_years').upsert({
@@ -88,7 +120,7 @@ export default function AcademicManager({ schools }: { schools: School[] }) {
     }
   }
   async function createSubjectCatalogue() {
-    if (!schoolId || !window.confirm('Create the Kenyan CBC learning-area catalogue and link core learning areas to the appropriate PP1–Grade 12 classes? Existing subjects and links will be preserved. Senior-school pathway electives will be added separately according to the pathways your school offers.')) return
+    if (!schoolId || !window.confirm('Create the approved CBC learning areas for PP1–Grade 9 using CRE and Kiswahili, and link them with the correct weekly lesson allocations? Existing matching subjects and links will be preserved. Senior-school subjects are not included yet.')) return
     setBusy(true); setError(''); setNotice('')
     try {
       const unique = Array.from(new Map(catalogue.map(s => [s.name, s])).values())
@@ -105,13 +137,13 @@ export default function AcademicManager({ schools }: { schools: School[] }) {
       const links = catalogue.flatMap(s => s.grades.flatMap(grade => {
         const classRow = (savedClasses || []).find(c => c.name === grade)
         const subjectId = subjectByName.get(s.name)
-        return classRow && subjectId ? [{ school_id: schoolId, class_id: classRow.id, subject_id: subjectId }] : []
+        return classRow && subjectId ? [{ school_id: schoolId, class_id: classRow.id, subject_id: subjectId, lessons_per_week: s.lessonsPerWeek }] : []
       }))
       if (links.length) {
         const { error: linkError } = await supabase.from('class_subjects').upsert(links, { onConflict: 'class_id,subject_id', ignoreDuplicates: true })
         if (linkError) throw linkError
       }
-      setNotice('CBC catalogue ready: ' + unique.length + ' learning areas created or checked, and ' + links.length + ' grade-to-subject links created or checked. Add senior-school pathway electives separately to match your approved school offering.')
+      setNotice('Approved CBC catalogue ready: ' + unique.length + ' unique learning areas created or checked, and ' + links.length + ' grade links with weekly allocations created or checked. CRE and Kiswahili are selected; senior-school subjects remain separate.')
       if (tab === 'subjects') await loadRows()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create the CBC subject catalogue.')
@@ -163,7 +195,7 @@ export default function AcademicManager({ schools }: { schools: School[] }) {
     <div className="academic-head"><div><p className="kicker">SCHOOL SETUP</p><h2>Academic structure</h2><p className="muted">Set up the academic calendar, classes and subjects for each school.</p></div><button className="secondary" onClick={()=>void loadRows()}><RefreshCw/> Refresh</button></div>
     <label className="school-picker">Select school<select value={schoolId} onChange={e=>{setSchoolId(e.target.value);setAdding(false)}}>{schools.map(s=><option key={s.id} value={s.id}>{s.name} · {s.status}</option>)}</select></label>
     <div className="setup-automatic"><div><b>Quick setup for Kenya · 2027</b><p>Creates the academic year, three terms and CBC classes from PP1 to Grade 12. Matching records are not duplicated.</p><small>Term dates follow the 2027 primary and junior school calendar. Confirm senior-school dates with your school before using them.</small></div><button className="primary" disabled={!schoolId || busy} onClick={()=>void automaticSetup()}><Sparkles/>{busy?'Setting up…':'Set up automatically'}</button></div>
-    <div className="setup-automatic"><div><b>Kenyan CBC subject catalogue</b><p>Creates learning areas for PP1–Grade 12 and links core subjects to the relevant classes.</p><small>Senior-school pathway electives are kept separate so the school can select only the subjects it is approved and equipped to offer.</small></div><button className="primary" disabled={!schoolId || busy} onClick={()=>void createSubjectCatalogue()}><Sparkles/>{busy?"Creating…":"Create CBC subjects"}</button></div>
+    <div className="setup-automatic"><div><b>Kenyan CBC subject catalogue</b><p>Creates the approved, duplicate-free learning areas for PP1–Grade 9 with weekly lesson allocations.</p><small>CRE and Kiswahili are used. PPI is included as non-examinable. Senior-school subjects will be added when your approved list is ready.</small></div><button className="primary" disabled={!schoolId || busy} onClick={()=>void createSubjectCatalogue()}><Sparkles/>{busy?"Creating…":"Create CBC subjects"}</button></div>
     <div className="setup-automatic"><div><b>Automatic class streams</b><p>Create the stream names you use across every class. You can enter names such as A, B, East, West or Red, Blue.</p><small>Existing matching streams are preserved. You can also manage individual streams in the Streams tab.</small></div><button className="primary" disabled={!schoolId || busy} onClick={()=>void createDefaultStreams()}><Sparkles/>{busy?'Creating…':'Create class streams'}</button></div>
     <div className="academic-tabs">{(Object.keys(config) as Tab[]).map(t=><button key={t} className={tab===t?'selected':''} onClick={()=>{setTab(t);setAdding(false);setForm({})}}>{config[t].title}</button>)}</div>
     <div className="panel-heading"><h2>{current.title}</h2><button className="primary" disabled={!schoolId} onClick={()=>setAdding(!adding)}><Plus/> Add {current.title.replace(/s$/,'')}</button></div>
