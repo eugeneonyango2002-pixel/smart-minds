@@ -200,3 +200,44 @@ AND NOT EXISTS (SELECT 1 FROM public.exam_results er WHERE er.school_id=s.school
 AND NOT EXISTS (SELECT 1 FROM public.timetable_entries te WHERE te.school_id=s.school_id AND te.subject_id=s.id);
 
 -- Make the canonical subject names the only active Grade 1–9 class allocations.
+
+-- Enforce the exact requested list for each primary/junior class.
+DELETE FROM public.class_subjects cs
+USING public.classes c, public.subjects s
+WHERE c.id = cs.class_id AND c.school_id = cs.school_id
+  AND s.id = cs.subject_id AND s.school_id = cs.school_id
+  AND (
+    (c.name IN ('Grade 1','Grade 2','Grade 3') AND s.name NOT IN (
+      'Indigenous Language Activities',
+      'Kiswahili Language Activities / Kenya Sign Language (KSL)',
+      'English Language Activities',
+      'Mathematical Activities',
+      'Environmental Activities',
+      'Creative Activities',
+      'Religious Education (CRE / IRE / HRE)'
+    ))
+    OR
+    (c.name IN ('Grade 4','Grade 5','Grade 6') AND s.name NOT IN (
+      'English',
+      'Kiswahili / Kenya Sign Language (KSL)',
+      'Mathematics',
+      'Science and Technology',
+      'Social Studies',
+      'Agriculture and Nutrition',
+      'Creative Arts',
+      'Religious Education (CRE / IRE / HRE)'
+    ))
+    OR
+    (c.name IN ('Grade 7','Grade 8','Grade 9') AND s.name NOT IN (
+      'English',
+      'Kiswahili / Kenya Sign Language (KSL)',
+      'Mathematics',
+      'Integrated Science',
+      'Social Studies',
+      'Pre-Technical Studies',
+      'Agriculture and Nutrition',
+      'Creative Arts and Sports',
+      'Religious Education (CRE / IRE / HRE)'
+    ))
+  );
+
