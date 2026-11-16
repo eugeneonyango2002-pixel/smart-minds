@@ -144,7 +144,8 @@ JOIN public.classes c ON c.id = old_link.class_id AND c.school_id = old_link.sch
 JOIN cbc_subject_name_map m ON m.class_name = c.name
 JOIN public.subjects old_s ON old_s.id = old_link.subject_id AND old_s.school_id = old_link.school_id AND old_s.name = m.old_name
 JOIN public.subjects new_s ON new_s.school_id = old_link.school_id AND new_s.name = m.new_name
-WHERE target_link.class_id = old_link.class_id
+WHERE target_link.id <> old_link.id
+  AND target_link.class_id = old_link.class_id
   AND target_link.school_id = old_link.school_id
   AND target_link.subject_id = new_s.id;
 
@@ -159,6 +160,7 @@ WHERE c.id = old_link.class_id AND c.school_id = old_link.school_id
     WHERE target_link.class_id = old_link.class_id
       AND target_link.school_id = old_link.school_id
       AND target_link.subject_id = new_s.id
+      AND target_link.id <> old_link.id
   );
 
 UPDATE public.class_subjects old_link
@@ -168,6 +170,7 @@ WHERE c.id = old_link.class_id AND c.school_id = old_link.school_id
   AND old_s.id = old_link.subject_id AND old_s.school_id = old_link.school_id
   AND m.class_name = c.name AND m.old_name = old_s.name
   AND new_s.school_id = old_link.school_id AND new_s.name = m.new_name
+  AND old_s.id <> new_s.id
   AND NOT EXISTS (
     SELECT 1 FROM public.class_subjects target_link
     WHERE target_link.class_id = old_link.class_id
