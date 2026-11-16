@@ -1,103 +1,14 @@
 /**
- * Smart Minds automatic Google Sheets sync.
- * Paste this file into Extensions > Apps Script in the spreadsheet.
- * Set Script Properties:
- *   SMART_MINDS_SYNC_URL = https://YOUR_PROJECT_REF.supabase.co/functions/v1/google-sheets-sync
- *   SMART_MINDS_SYNC_TOKEN = the same long random token configured as a Supabase function secret
+ * Smart Minds lower-primary sync.
+ * @OnlyCurrentDoc
+ * Only the current workbook and explicitly listed tabs are processed.
  */
-const SMART_MINDS_SHEET_ID = "1pO9Pdtsz_XWcu8a1s0t1Xz0hujVS_7_5K7IUkNb3XjVQ";
-const SMART_MINDS_TAB = "G1";
-
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu("Smart Minds")
-    .addItem("Sync all Grade 1 learners", "syncAllRows")
-    .addItem("Install automatic sync", "installSmartMindsTrigger")
-    .addToUi();
-}
-
-function installSmartMindsTrigger() {
-  const ss = SpreadsheetApp.getActive();
-  if (ss.getId() !== SMART_MINDS_SHEET_ID) throw new Error("This is not the authorised Smart Minds spreadsheet.");
-  ScriptApp.getProjectTriggers()
-    .filter(t => t.getHandlerFunction() === "onSmartMindsEdit")
-    .forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger("onSmartMindsEdit").forSpreadsheet(ss).onEdit().create();
-  SpreadsheetApp.getUi().alert("Automatic sync is installed. Changes to learner rows on the G1 tab will be sent to Smart Minds.");
-}
-
-function onSmartMindsEdit(e) {
-  if (!e || !e.range) return;
-  const sheet = e.range.getSheet();
-  if (sheet.getName() !== SMART_MINDS_TAB || e.range.getRow() < 2) return;
-  const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-  try {
-    syncOneRow_(sheet, e.range.getRow());
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function syncAllRows() {
-  const ss = SpreadsheetApp.getActive();
-  if (ss.getId() !== SMART_MINDS_SHEET_ID) throw new Error("This is not the authorised Smart Minds spreadsheet.");
-  const sheet = ss.getSheetByName(SMART_MINDS_TAB);
-  if (!sheet) throw new Error("The G1 tab was not found.");
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
-    SpreadsheetApp.getUi().alert("There are no learner rows to sync.");
-    return;
-  }
-  const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-  try {
-    let success = 0;
-    const failures = [];
-    for (let row = 2; row <= lastRow; row++) {
-      try {
-        const result = syncOneRow_(sheet, row);
-        if (result && result.success) success++;
-      } catch (err) {
-        failures.push("Row " + row + ": " + err.message);
-      }
-    }
-    const summary = success + " learner row(s) synced.";
-    SpreadsheetApp.getUi().alert(failures.length ? summary + "\n\nSome rows need attention:\n" + failures.slice(0, 10).join("\n") : summary);
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function syncOneRow_(sheet, rowNumber) {
-  const props = PropertiesService.getScriptProperties();
-  const url = props.getProperty("SMART_MINDS_SYNC_URL");
-  const token = props.getProperty("SMART_MINDS_SYNC_TOKEN");
-  if (!url || !token) throw new Error("Set SMART_MINDS_SYNC_URL and SMART_MINDS_SYNC_TOKEN in Apps Script project settings first.");
-  const width = sheet.getLastColumn();
-  const headers = sheet.getRange(1, 1, 1, width).getDisplayValues()[0].map(h => String(h).trim());
-  const values = sheet.getRange(rowNumber, 1, 1, width).getDisplayValues()[0];
-  const row = {};
-  headers.forEach((header, i) => { if (header) row[header] = values[i]; });
-  if (!String(row.Name || "").trim()) return { success: false, skipped: true };
-
-  const response = UrlFetchApp.fetch(url, {
-    method: "post",
-    contentType: "application/json",
-    headers: { Authorization: "Bearer " + token },
-    payload: JSON.stringify({
-      spreadsheetId: SMART_MINDS_SHEET_ID,
-      sheetName: SMART_MINDS_TAB,
-      row: row
-    }),
-    muteHttpExceptions: true
-  });
-  const status = response.getResponseCode();
-  let result;
-  try { result = JSON.parse(response.getContentText()); }
-  catch (_) { throw new Error("Smart Minds returned an unreadable response (HTTP " + status + ")."); }
-  if (status < 200 || status >= 300 || !result.success) {
-    throw new Error(result.error || ("Smart Minds sync failed (HTTP " + status + ")."));
-  }
-  return result;
-}
+const SMART_MINDS_SHEET_ID="1X_lq5SjTQVLZUDPZsykRgyPau3Gpz2NP5D9ZusNGWpI";
+const SMART_MINDS_TABS=["G1","2B","2G","3B","3G"];
+const SMART_MINDS_LABELS={G1:"Grade 1","2B":"Grade 2B","2G":"Grade 2G","3B":"Grade 3B","3G":"Grade 3G"};
+function onOpen(){const ui=SpreadsheetApp.getUi(),m=ui.createMenu("Smart Minds");SMART_MINDS_TABS.forEach(t=>m.addItem("Sync "+SMART_MINDS_LABELS[t],"syncTab_"+t));m.addSeparator().addItem("Install automatic sync","installSmartMindsTrigger").addToUi();}
+function installSmartMindsTrigger(){const ss=SpreadsheetApp.getActiveSpreadsheet();if(!ss||ss.getId()!==SMART_MINDS_SHEET_ID)throw Error("This is not the authorised workbook.");ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==="onSmartMindsEdit").forEach(t=>ScriptApp.deleteTrigger(t));ScriptApp.newTrigger("onSmartMindsEdit").forSpreadsheet(ss).onEdit().create();SpreadsheetApp.getUi().alert("Automatic sync installed. Only G1, 2B, 2G, 3B and 3G will be processed.");}
+function onSmartMindsEdit(e){if(!e||!e.range)return;const sh=e.range.getSheet(),tab=sh.getName();if(!SMART_MINDS_TABS.includes(tab)||e.range.getRow()<2)return;const lock=LockService.getScriptLock();lock.waitLock(30000);try{syncOneRow_(sh,e.range.getRow());}finally{lock.releaseLock();}}
+function syncTab_G1(){syncTab_("G1");}function syncTab_2B(){syncTab_("2B");}function syncTab_2G(){syncTab_("2G");}function syncTab_3B(){syncTab_("3B");}function syncTab_3G(){syncTab_("3G");}
+function syncTab_(tab){if(!SMART_MINDS_TABS.includes(tab))throw Error("Tab not authorised.");const ss=SpreadsheetApp.getActiveSpreadsheet();if(!ss||ss.getId()!==SMART_MINDS_SHEET_ID)throw Error("This is not the authorised workbook.");const sh=ss.getSheetByName(tab);if(!sh)throw Error("Tab "+tab+" not found.");const last=sh.getLastRow();if(last<2){SpreadsheetApp.getUi().alert("No learner rows in "+tab);return;}const lock=LockService.getScriptLock();lock.waitLock(30000);try{let ok=0;const bad=[];for(let r=2;r<=last;r++){try{const x=syncOneRow_(sh,r);if(x&&x.success)ok++;}catch(e){bad.push("Row "+r+": "+e.message);}}const msg=ok+" learner row(s) synced from "+tab+".";SpreadsheetApp.getUi().alert(bad.length?msg+"\n\nRows needing attention:\n"+bad.slice(0,10).join("\n"):msg);}finally{lock.releaseLock();}}
+function syncOneRow_(sh,r){const tab=sh.getName();if(!SMART_MINDS_TABS.includes(tab))throw Error("Worksheet not authorised.");const p=PropertiesService.getScriptProperties(),url=p.getProperty("SMART_MINDS_SYNC_URL"),token=p.getProperty("SMART_MINDS_SYNC_TOKEN");if(!url||!token)throw Error("Set SMART_MINDS_SYNC_URL and SMART_MINDS_SYNC_TOKEN in Project Settings.");const w=sh.getLastColumn(),h=sh.getRange(1,1,1,w).getDisplayValues()[0].map(x=>String(x).trim()),v=sh.getRange(r,1,1,w).getDisplayValues()[0],row={};h.forEach((x,i)=>{if(x)row[x]=v[i];});if(!String(row.Name||"").trim())return{success:false,skipped:true};const res=UrlFetchApp.fetch(url,{method:"post",contentType:"application/json",headers:{Authorization:"Bearer "+token},payload:JSON.stringify({spreadsheetId:SMART_MINDS_SHEET_ID,sheetName:tab,row}),muteHttpExceptions:true});const status=res.getResponseCode();let data;try{data=JSON.parse(res.getContentText());}catch(_){throw Error("Unreadable server response (HTTP "+status+").");}if(status<200||status>=300||!data.success)throw Error(data.error||"Sync failed (HTTP "+status+").");return data;}
