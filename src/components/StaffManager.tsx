@@ -40,6 +40,7 @@ export default function StaffManager({ schools }: { schools: School[] }) {
   const [allocations, setAllocations] = useState<Allocation[]>([])
   const [workloadAllocations, setWorkloadAllocations] = useState<WorkloadAllocation[]>([])
   const [allocationBusy, setAllocationBusy] = useState(false)
+  const [balancingBusy, setBalancingBusy] = useState<string | null>(null)
   const [allocationLoading, setAllocationLoading] = useState(false)
   useEffect(() => {
     if (!schoolId && schools.length) setSchoolId(schools.find(s => s.status === 'approved')?.id || schools[0].id)
@@ -89,6 +90,19 @@ export default function StaffManager({ schools }: { schools: School[] }) {
       setNotice('Teacher assignment saved successfully.')
     }
     setAllocationBusy(false)
+  }
+  async function rebalanceTeacherAssignment(allocationId: string, teacherId: string) {
+    setBalancingBusy(allocationId); setError(''); setNotice('')
+    const { error } = await supabase.from('class_subjects')
+      .update({ teacher_id: teacherId || null })
+      .eq('id', allocationId).eq('school_id', schoolId)
+    if (error) setError(error.message)
+    else {
+      setWorkloadAllocations(current => current.map(row => row.id === allocationId ? { ...row, teacher_id: teacherId || null } : row))
+      setAllocations(current => current.map(row => row.id === allocationId ? { ...row, teacher_id: teacherId || null } : row))
+      setNotice('Teaching assignment updated. Teacher workloads have been recalculated.')
+    }
+    setBalancingBusy(null)
   }
   async function load() {
     setError('')
@@ -173,6 +187,11 @@ export default function StaffManager({ schools }: { schools: School[] }) {
       <div className="academic-head"><div><p className="kicker">TEACHING LOAD</p><h2>Teacher workload overview</h2><p className="muted">Compare each active teacher's assigned lessons per week, classes and subjects. The comparison is against your school's current teacher average.</p></div><button type="button" className="secondary" onClick={() => void loadWorkload()}><RefreshCw /> Refresh workload</button></div>
       {teacherWorkloads.length === 0 ? <p className="muted">Register active teachers to see their workload.</p> : <div className="table-wrap"><table><thead><tr><th>Teacher</th><th>Lessons / week</th><th>Classes</th><th>Subjects</th><th>Workload comparison</th></tr></thead><tbody>{teacherWorkloads.map(row => <tr key={row.teacher.id}><td><b>{row.teacher.first_name} {row.teacher.last_name}</b><small>{row.teacher.employee_number}</small></td><td><b>{row.lessons}</b></td><td>{row.classes.length ? row.classes.join(', ') : '—'}</td><td>{row.subjects.length ? row.subjects.join(', ') : '—'}</td><td><span className={'status ' + (row.comparison === 'Above school average' || row.comparison === 'No lessons assigned' ? 'pending' : 'approved')}>{row.comparison}</span></td></tr>)}</tbody></table></div>}
       <p className="muted">Totals use lessons-per-week values in Teacher–Subject Allocation. Above/below average is a guide, not a fixed staffing limit.</p>
+      <div style={{ marginTop: 18 }}><h3>Workload balancing</h3><p className="muted">Move a class subject from one teacher to another below. The weekly lesson total will update automatically. Choose “Not assigned” to leave a subject unallocated.</p>
+      {workloadAllocations.length === 0 ? <p className="muted">No class subject allocations are available yet.</p> : <div className="table-wrap"><table><thead><tr><th>Class</th><th>Subject</th><th>Lessons / week</th><th>Currently assigned teacher</th><th>Reassign to</th></tr></thead><tbody>{workloadAllocations.map(row => {
+        const assignedTeacher = staff.find(member => member.id === row.teacher_id)
+        return <tr key={row.id}><td>{classes.find(item => item.id === row.class_id)?.name || 'Class'}</td><td><b>{subjects.find(item => item.id === row.subject_id)?.name || 'Subject'}</b></td><td>{row.lessons_per_week ?? '—'}</td><td>{assignedTeacher ? assignedTeacher.first_name + ' ' + assignedTeacher.last_name : 'Not assigned'}</td><td><select aria-label={'Reassign ' + (subjects.find(item => item.id === row.subject_id)?.name || 'subject')} value={row.teacher_id || ''} disabled={balancingBusy !== null} onChange={e => void rebalanceTeacherAssignment(row.id, e.target.value)}><option value="">Not assigned</option>{staff.filter(member => member.staff_role === 'teacher' && member.status === 'active').map(member => <option key={member.id} value={member.id}>{member.first_name} {member.last_name}</option>)}</select>{balancingBusy === row.id && <small>Saving…</small>}</td></tr>
+      })}</tbody></table></div>}</div>
     </section>
     <section className="panel" style={{ marginTop: 22 }}>
       <div className="academic-head"><div><p className="kicker">TEACHING PLAN</p><h2>Teacher–subject allocation</h2><p className="muted">Assign an active registered teacher to each approved subject in a class. These assignments will be used by the timetable.</p></div><button type="button" className="secondary" onClick={() => { void loadAllocationSetup(); if (selectedClassId) void loadAllocations(selectedClassId) }}><RefreshCw /> Refresh</button></div>
