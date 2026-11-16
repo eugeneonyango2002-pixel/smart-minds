@@ -53,10 +53,10 @@ begin
 
   v_full_name := regexp_replace(btrim(coalesce(p_row->>'Name', p_row->>'name','')), '[[:space:]]+', ' ', 'g');
   if v_full_name = '' then raise exception 'Name is required.'; end if;
-  if array_length(regexp_split_to_array(v_full_name, '\\s+'),1) < 2 then
+  if array_length(regexp_split_to_array(v_full_name, '[[:space:]]+'),1) < 2 then
     raise exception 'Enter at least two names.'; end if;
   v_first := split_part(v_full_name, ' ', 1);
-  v_last := btrim(regexp_replace(v_full_name, '^\\S+\\s*', ''));
+  v_last := btrim(regexp_replace(v_full_name, '^[^ ]+[[:space:]]*', ''));
 
   select id into v_class
   from classes where school_id = v_school and name = v_grade;
@@ -72,8 +72,8 @@ begin
   from students
   where school_id = v_school and class_id = v_class
     and stream_id is not distinct from v_stream
-    and lower(regexp_replace(trim(concat_ws(' ',first_name,middle_name,last_name)), '\\s+', ' ', 'g'))
-      = lower(regexp_replace(trim(v_full_name), '\\s+', ' ', 'g'));
+    and lower(regexp_replace(trim(concat_ws(' ',first_name,middle_name,last_name)), '[[:space:]]+', ' ', 'g'))
+      = lower(regexp_replace(trim(v_full_name), '[[:space:]]+', ' ', 'g'));
 
   if v_count > 1 then raise exception 'Duplicate learner name in %.', v_grade; end if;
 
@@ -82,8 +82,8 @@ begin
     from students
     where school_id = v_school and class_id = v_class
       and stream_id is not distinct from v_stream
-      and lower(regexp_replace(trim(concat_ws(' ',first_name,middle_name,last_name)), '\\s+', ' ', 'g'))
-        = lower(regexp_replace(trim(v_full_name), '\\s+', ' ', 'g'))
+      and lower(regexp_replace(trim(concat_ws(' ',first_name,middle_name,last_name)), '[[:space:]]+', ' ', 'g'))
+        = lower(regexp_replace(trim(v_full_name), '[[:space:]]+', ' ', 'g'))
     limit 1;
   end if;
 
@@ -137,7 +137,7 @@ begin
     ) as mapping(col, subject_name)
   loop
     if nullif(btrim(coalesce(p_row->>v_column,'')),'') is not null then
-      if (p_row->>v_column) !~ '^\\s*[0-9]+(\\.[0-9]+)?\\s*$' then
+      if (p_row->>v_column) !~ '^[[:space:]]*[0-9]+([.][0-9]+)?[[:space:]]* then
         raise exception '% must be a number from 0 to 100.', v_column;
       end if;
       v_score := btrim(p_row->>v_column)::numeric;
@@ -175,6 +175,99 @@ begin
   loop
     if nullif(btrim(coalesce(p_row->>v_column,'')),'') is not null then
       if (p_row->>v_column) !~ '^\\s*[0-9]+(\\.[0-9]+)?\\s*$' then
+        raise exception '% must be a number from 0 to 100.', v_column;
+      end if;
+      v_score := btrim(p_row->>v_column)::numeric;
+      if v_score < 0 or v_score > 100 then
+        raise exception '% must be from 0 to 100.', v_column;
+      end if;
+
+      insert into reading_assessment_results (
+        school_id, examination_id, student_id, component, score
+      ) values (v_school, v_exam, v_student, v_component, v_score)
+      on conflict (examination_id, student_id, component)
+      do update set score = excluded.score, updated_at = now();
+      v_reading := v_reading + 1;
+    end if;
+  end loop;
+
+  return jsonb_build_object(
+    'success', true, 'learner', v_full_name, 'class', v_grade,
+    'stream', v_stream_name, 'sheet', p_sheet_name,
+    'admissionNumber', v_admission, 'exam', 'End Term 3',
+    'learningAreaMarksSaved', v_saved, 'readingAssessmentMarksSaved', v_reading
+  );
+end;
+$$;
+
+revoke all on function public.smart_minds_sync_sheet_row(text,jsonb) from public, anon, authenticated;
+grant execute on function public.smart_minds_sync_sheet_row(text,jsonb) to service_role;
+ then
+        raise exception '% must be a number from 0 to 100.', v_column;
+      end if;
+      v_score := btrim(p_row->>v_column)::numeric;
+      if v_score < 0 or v_score > 100 then
+        raise exception '% must be from 0 to 100.', v_column;
+      end if;
+
+      select id into v_subject from subjects
+      where school_id = v_school and name = v_subject_name;
+      if v_subject is null or not exists (
+        select 1 from class_subjects
+        where school_id = v_school and class_id = v_class and subject_id = v_subject
+      ) then
+        raise exception '% missing learning-area allocation: %', v_grade, v_subject_name;
+      end if;
+
+      v_remark := case
+        when v_score >= 80 then 'Excellent achievement. Demonstrates strong understanding and applies learning confidently. Keep extending this excellent work.'
+        when v_score >= 60 then 'Good progress. Demonstrates the expected understanding of the learning area. Keep practising to strengthen and extend these skills.'
+        when v_score >= 40 then 'Making progress but needs more practice to meet the expected outcomes. Focus on the areas covered and seek guidance when needed.'
+        else 'Needs additional support and regular practice to build understanding of the learning outcomes. Work closely with the teacher on the identified areas.'
+      end;
+
+      insert into exam_results (
+        school_id, examination_id, student_id, subject_id, score, remarks
+      ) values (v_school, v_exam, v_student, v_subject, v_score, v_remark)
+      on conflict (examination_id, student_id, subject_id)
+      do update set score = excluded.score, remarks = excluded.remarks, updated_at = now();
+      v_saved := v_saved + 1;
+    end if;
+  end loop;
+
+  for v_column, v_component in
+    select * from (values ('READ','english_reading'),('KUS','kiswahili_reading')) as reading_map(col, component)
+  loop
+    if nullif(btrim(coalesce(p_row->>v_column,'')),'') is not null then
+      if (p_row->>v_column) !~ '^[[:space:]]*[0-9]+([.][0-9]+)?[[:space:]]* then
+        raise exception '% must be a number from 0 to 100.', v_column;
+      end if;
+      v_score := btrim(p_row->>v_column)::numeric;
+      if v_score < 0 or v_score > 100 then
+        raise exception '% must be from 0 to 100.', v_column;
+      end if;
+
+      insert into reading_assessment_results (
+        school_id, examination_id, student_id, component, score
+      ) values (v_school, v_exam, v_student, v_component, v_score)
+      on conflict (examination_id, student_id, component)
+      do update set score = excluded.score, updated_at = now();
+      v_reading := v_reading + 1;
+    end if;
+  end loop;
+
+  return jsonb_build_object(
+    'success', true, 'learner', v_full_name, 'class', v_grade,
+    'stream', v_stream_name, 'sheet', p_sheet_name,
+    'admissionNumber', v_admission, 'exam', 'End Term 3',
+    'learningAreaMarksSaved', v_saved, 'readingAssessmentMarksSaved', v_reading
+  );
+end;
+$$;
+
+revoke all on function public.smart_minds_sync_sheet_row(text,jsonb) from public, anon, authenticated;
+grant execute on function public.smart_minds_sync_sheet_row(text,jsonb) to service_role;
+ then
         raise exception '% must be a number from 0 to 100.', v_column;
       end if;
       v_score := btrim(p_row->>v_column)::numeric;
