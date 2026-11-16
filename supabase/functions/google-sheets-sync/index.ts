@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "POST only." }, 405);
 
   const secret = Deno.env.get("GOOGLE_SHEETS_SYNC_TOKEN") ?? "";
-  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\\s+/i, "");
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!secret || token !== secret) return json({ error: "Unauthorized." }, 401);
 
   const url = Deno.env.get("SUPABASE_URL");
