@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { CalendarCheck, CheckCircle2, RefreshCw, Save, Users, XCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -67,7 +67,7 @@ export default function StaffAttendanceManager({ schools }: { schools: School[] 
     setSaving(false)
   }
 
-  async function submitLeave(e: React.FormEvent) {
+  async function submitLeave(e: FormEvent) {
     e.preventDefault()
     if (!schoolId || !leaveForm.staff_id) return
     setLeaveSaving(true); setError(''); setNotice('')
