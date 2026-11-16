@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
     if (!examId) {
       const { data: exam, error: examCreateError } = await db.from("examinations").insert({
         school_id: SCHOOL_ID, academic_year_id: ACADEMIC_YEAR_ID, term_id: TERM_ID,
-        class_id: CLASS_ID, name: EXAM_NAME, exam_date: new Date().toISOString().slice(0, 10),
+        class_id: CLASS_ID, name: EXAM_NAME, exam_date: null,
         max_score: 100, status: "draft",
       }).select("id").single();
       if (examCreateError) throw examCreateError;
