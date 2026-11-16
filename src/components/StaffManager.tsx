@@ -3,6 +3,9 @@ import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, UserPlus, Copy }
 import { supabase } from '../lib/supabase'
 
 type School = { id: string; name: string; status?: string }
+type ClassRow = { id: string; name: string }
+type SubjectRow = { id: string; name: string; is_examinable: boolean }
+type Allocation = { id: string; subject_id: string; teacher_id: string | null; lessons_per_week: number | null }
 type Staff = {
   id: string; employee_number: string; first_name: string; middle_name: string | null; last_name: string;
   gender: string | null; phone: string | null; email: string | null; staff_role: string;
@@ -30,10 +33,54 @@ export default function StaffManager({ schools }: { schools: School[] }) {
   const [invitation, setInvitation] = useState<{ code: string; name: string } | null>(null)
   const [invitingId, setInvitingId] = useState<string | null>(null)
   const [copyNotice, setCopyNotice] = useState('')
+  const [classes, setClasses] = useState<ClassRow[]>([])
+  const [selectedClassId, setSelectedClassId] = useState('')
+  const [subjects, setSubjects] = useState<SubjectRow[]>([])
+  const [allocations, setAllocations] = useState<Allocation[]>([])
+  const [allocationBusy, setAllocationBusy] = useState(false)
+  const [allocationLoading, setAllocationLoading] = useState(false)
   useEffect(() => {
     if (!schoolId && schools.length) setSchoolId(schools.find(s => s.status === 'approved')?.id || schools[0].id)
   }, [schools, schoolId])
-  useEffect(() => { if (schoolId) void load() }, [schoolId])
+  useEffect(() => { if (schoolId) { void load(); void loadAllocationSetup() } }, [schoolId])
+  async function loadAllocationSetup() {
+    setAllocationLoading(true)
+    const [{ data: classRows, error: classError }, { data: subjectRows, error: subjectError }] = await Promise.all([
+      supabase.from('classes').select('id,name').eq('school_id', schoolId).order('sort_order'),
+      supabase.from('subjects').select('id,name,is_examinable').eq('school_id', schoolId).order('name'),
+    ])
+    if (classError) setError(classError.message)
+    else {
+      const nextClasses = (classRows || []) as ClassRow[]
+      setClasses(nextClasses)
+      setSelectedClassId(current => nextClasses.some(row => row.id === current) ? current : nextClasses[0]?.id || '')
+    }
+    if (subjectError) setError(subjectError.message)
+    else setSubjects((subjectRows || []) as SubjectRow[])
+    setAllocationLoading(false)
+  }
+  async function loadAllocations(classId: string) {
+    if (!schoolId || !classId) { setAllocations([]); return }
+    setAllocationLoading(true)
+    const { data, error } = await supabase.from('class_subjects')
+      .select('id,subject_id,teacher_id,lessons_per_week')
+      .eq('school_id', schoolId).eq('class_id', classId)
+    if (error) setError(error.message)
+    else setAllocations((data || []) as Allocation[])
+    setAllocationLoading(false)
+  }
+  useEffect(() => { if (selectedClassId) void loadAllocations(selectedClassId) }, [selectedClassId, schoolId])
+  async function saveTeacherAssignment(allocationId: string, teacherId: string) {
+    setAllocationBusy(true); setError(''); setNotice('')
+    const { error } = await supabase.from('class_subjects').update({ teacher_id: teacherId || null })
+      .eq('id', allocationId).eq('school_id', schoolId)
+    if (error) setError(error.message)
+    else {
+      setAllocations(current => current.map(row => row.id === allocationId ? { ...row, teacher_id: teacherId || null } : row))
+      setNotice('Teacher assignment saved successfully.')
+    }
+    setAllocationBusy(false)
+  }
   async function load() {
     setError('')
     const { data, error } = await supabase.from('staff').select('*').eq('school_id', schoolId).order('last_name').order('first_name')
@@ -101,6 +148,15 @@ export default function StaffManager({ schools }: { schools: School[] }) {
       <label>Employment status<select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}><option value="active">Active</option><option value="on_leave">On leave</option><option value="inactive">Inactive</option></select></label>
       <div className="academic-form-actions"><button type="button" className="secondary" onClick={() => { setAdding(false); setEditingId(null); setForm(blank) }}>Cancel</button><button className="primary" disabled={busy}>{busy ? 'Saving…' : editingId ? 'Update staff details' : 'Save staff member'}</button></div>
     </form>}
+    <section className="panel" style={{ marginTop: 22 }}>
+      <div className="academic-head"><div><p className="kicker">TEACHING PLAN</p><h2>Teacher–subject allocation</h2><p className="muted">Assign an active registered teacher to each approved subject in a class. These assignments will be used by the timetable.</p></div><button type="button" className="secondary" onClick={() => { void loadAllocationSetup(); if (selectedClassId) void loadAllocations(selectedClassId) }}><RefreshCw /> Refresh</button></div>
+      <label className="school-picker">Select class<select value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)} disabled={!classes.length}><option value="">Choose a class</option>{classes.filter(c => /^(PP1|PP2|Grade [1-9])$/.test(c.name)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+      {allocationLoading ? <p className="muted">Loading class subjects…</p> : !selectedClassId ? <p className="muted">No PP1–Grade 9 classes are available yet.</p> : allocations.length === 0 ? <p className="muted">No subject allocations found for this class. Check the CBC subject setup first.</p> : <div className="table-wrap"><table><thead><tr><th>Approved subject</th><th>Lessons / week</th><th>Assigned teacher</th></tr></thead><tbody>{allocations.map(row => {
+        const subject = subjects.find(item => item.id === row.subject_id)
+        return <tr key={row.id}><td><b>{subject?.name || 'Unknown subject'}</b>{subject && !subject.is_examinable && <small>Non-examinable</small>}</td><td>{row.lessons_per_week ?? '—'}</td><td><select aria-label={'Teacher for ' + (subject?.name || 'subject')} value={row.teacher_id || ''} disabled={allocationBusy} onChange={e => void saveTeacherAssignment(row.id, e.target.value)}><option value="">Not assigned</option>{staff.filter(member => member.staff_role === 'teacher' && member.status === 'active').map(member => <option key={member.id} value={member.id}>{member.first_name} {member.middle_name || ''} {member.last_name} ({member.employee_number})</option>)}</select></td></tr>
+      })}</tbody></table></div>}
+      {staff.filter(member => member.staff_role === 'teacher' && member.status === 'active').length === 0 && <p className="muted">No active teachers are available. Register teachers with the Teacher role and Active status.</p>}
+    </section>
     <div className="student-count"><Users /> {visible.length} staff record(s)</div>
     {visible.length === 0 ? <div className="empty"><Users /><h3>No staff found</h3><p>Add your first teacher or employee to begin building the staff register.</p></div> : <div className="table-wrap"><table><thead><tr><th>Staff no.</th><th>Staff member</th><th>Role</th><th>Contact</th><th>Employment</th><th>Date joined</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visible.map(s => <tr key={s.id}><td><b>{s.employee_number}</b></td><td><b>{s.first_name} {s.middle_name || ''} {s.last_name}</b><small>{s.gender || '—'}</small></td><td>{roleLabels[s.staff_role] || s.staff_role}</td><td>{s.phone || '—'}<small>{s.email || ''}</small></td><td>{s.employment_type.replace(/_/g, ' ')}</td><td>{s.date_joined}</td><td><span className={'status ' + (s.status === 'active' ? 'approved' : 'pending')}>{s.status.replace(/_/g, ' ')}</span></td><td><div className="actions"><button type="button" className="secondary" onClick={() => { setForm({ employee_number: s.employee_number, first_name: s.first_name, middle_name: s.middle_name || '', last_name: s.last_name, gender: s.gender || '', phone: s.phone || '', email: s.email || '', staff_role: s.staff_role, employment_type: s.employment_type, date_joined: s.date_joined, status: s.status }); setEditingId(s.id); setAdding(true); setError(''); setNotice('') }}>Edit</button><button type="button" className="secondary" disabled={!s.email || s.status !== 'active' || invitingId === s.id} onClick={() => void createInvitation(s)}><UserPlus /> {invitingId === s.id ? 'Creating…' : 'Invite'}</button></div></td></tr>)}</tbody></table></div>}
   </section>
