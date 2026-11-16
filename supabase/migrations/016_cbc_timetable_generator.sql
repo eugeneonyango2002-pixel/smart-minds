@@ -18,7 +18,7 @@ begin
       add constraint class_subject_teacher_same_school_fk
       foreign key (school_id, teacher_id)
       references public.staff(school_id, id)
-      on delete set null;
+      on delete restrict;
   end if;
 end $$;
 
