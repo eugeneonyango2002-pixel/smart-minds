@@ -6,6 +6,7 @@ type School = { id: string; name: string; status?: string }
 type ClassRow = { id: string; name: string }
 type SubjectRow = { id: string; name: string; is_examinable: boolean }
 type Allocation = { id: string; subject_id: string; teacher_id: string | null; lessons_per_week: number | null }
+type WorkloadAllocation = { id: string; class_id: string; subject_id: string; teacher_id: string | null; lessons_per_week: number | null }
 type Staff = {
   id: string; employee_number: string; first_name: string; middle_name: string | null; last_name: string;
   gender: string | null; phone: string | null; email: string | null; staff_role: string;
@@ -37,6 +38,7 @@ export default function StaffManager({ schools }: { schools: School[] }) {
   const [selectedClassId, setSelectedClassId] = useState('')
   const [subjects, setSubjects] = useState<SubjectRow[]>([])
   const [allocations, setAllocations] = useState<Allocation[]>([])
+  const [workloadAllocations, setWorkloadAllocations] = useState<WorkloadAllocation[]>([])
   const [allocationBusy, setAllocationBusy] = useState(false)
   const [allocationLoading, setAllocationLoading] = useState(false)
   useEffect(() => {
@@ -59,6 +61,12 @@ export default function StaffManager({ schools }: { schools: School[] }) {
     else setSubjects((subjectRows || []) as SubjectRow[])
     setAllocationLoading(false)
   }
+  async function loadWorkload() {
+    if (!schoolId) { setWorkloadAllocations([]); return }
+    const { data, error } = await supabase.from('class_subjects').select('id,class_id,subject_id,teacher_id,lessons_per_week').eq('school_id', schoolId)
+    if (error) setError(error.message)
+    else setWorkloadAllocations((data || []) as WorkloadAllocation[])
+  }
   async function loadAllocations(classId: string) {
     if (!schoolId || !classId) { setAllocations([]); return }
     setAllocationLoading(true)
@@ -70,6 +78,7 @@ export default function StaffManager({ schools }: { schools: School[] }) {
     setAllocationLoading(false)
   }
   useEffect(() => { if (selectedClassId) void loadAllocations(selectedClassId) }, [selectedClassId, schoolId])
+  useEffect(() => { if (schoolId) void loadWorkload() }, [schoolId])
   async function saveTeacherAssignment(allocationId: string, teacherId: string) {
     setAllocationBusy(true); setError(''); setNotice('')
     const { error } = await supabase.from('class_subjects').update({ teacher_id: teacherId || null })
@@ -87,6 +96,18 @@ export default function StaffManager({ schools }: { schools: School[] }) {
     if (error) setError(error.message)
     else setStaff((data || []) as Staff[])
   }
+  const teacherWorkloads = useMemo(() => {
+    const teachers = staff.filter(member => member.staff_role === 'teacher' && member.status === 'active')
+    const rows = teachers.map(teacher => {
+      const assigned = workloadAllocations.filter(row => row.teacher_id === teacher.id)
+      const lessons = assigned.reduce((total, row) => total + (Number(row.lessons_per_week) || 0), 0)
+      const classIds = [...new Set(assigned.map(row => row.class_id))]
+      const subjectIds = [...new Set(assigned.map(row => row.subject_id))]
+      return { teacher, lessons, classes: classIds.map(id => classes.find(item => item.id === id)?.name || 'Class'), subjects: subjectIds.map(id => subjects.find(item => item.id === id)?.name || 'Subject') }
+    })
+    const average = rows.length ? rows.reduce((total, row) => total + row.lessons, 0) / rows.length : 0
+    return rows.map(row => ({ ...row, comparison: row.lessons === 0 ? 'No lessons assigned' : row.lessons > average ? 'Above school average' : row.lessons < average ? 'Below school average' : 'At school average' }))
+  }, [staff, workloadAllocations, classes, subjects])
   const visible = useMemo(() => staff.filter(s =>
     (s.first_name + ' ' + (s.middle_name || '') + ' ' + s.last_name + ' ' + s.employee_number + ' ' + (s.phone || '') + ' ' + (s.email || '')).toLowerCase().includes(search.toLowerCase())
   ), [staff, search])
@@ -148,6 +169,11 @@ export default function StaffManager({ schools }: { schools: School[] }) {
       <label>Employment status<select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}><option value="active">Active</option><option value="on_leave">On leave</option><option value="inactive">Inactive</option></select></label>
       <div className="academic-form-actions"><button type="button" className="secondary" onClick={() => { setAdding(false); setEditingId(null); setForm(blank) }}>Cancel</button><button className="primary" disabled={busy}>{busy ? 'Saving…' : editingId ? 'Update staff details' : 'Save staff member'}</button></div>
     </form>}
+    <section className="panel" style={{ marginTop: 22 }}>
+      <div className="academic-head"><div><p className="kicker">TEACHING LOAD</p><h2>Teacher workload overview</h2><p className="muted">Compare each active teacher's assigned lessons per week, classes and subjects. The comparison is against your school's current teacher average.</p></div><button type="button" className="secondary" onClick={() => void loadWorkload()}><RefreshCw /> Refresh workload</button></div>
+      {teacherWorkloads.length === 0 ? <p className="muted">Register active teachers to see their workload.</p> : <div className="table-wrap"><table><thead><tr><th>Teacher</th><th>Lessons / week</th><th>Classes</th><th>Subjects</th><th>Workload comparison</th></tr></thead><tbody>{teacherWorkloads.map(row => <tr key={row.teacher.id}><td><b>{row.teacher.first_name} {row.teacher.last_name}</b><small>{row.teacher.employee_number}</small></td><td><b>{row.lessons}</b></td><td>{row.classes.length ? row.classes.join(', ') : '—'}</td><td>{row.subjects.length ? row.subjects.join(', ') : '—'}</td><td><span className={'status ' + (row.comparison === 'Above school average' || row.comparison === 'No lessons assigned' ? 'pending' : 'approved')}>{row.comparison}</span></td></tr>)}</tbody></table></div>}
+      <p className="muted">Totals use lessons-per-week values in Teacher–Subject Allocation. Above/below average is a guide, not a fixed staffing limit.</p>
+    </section>
     <section className="panel" style={{ marginTop: 22 }}>
       <div className="academic-head"><div><p className="kicker">TEACHING PLAN</p><h2>Teacher–subject allocation</h2><p className="muted">Assign an active registered teacher to each approved subject in a class. These assignments will be used by the timetable.</p></div><button type="button" className="secondary" onClick={() => { void loadAllocationSetup(); if (selectedClassId) void loadAllocations(selectedClassId) }}><RefreshCw /> Refresh</button></div>
       <label className="school-picker">Select class<select value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)} disabled={!classes.length}><option value="">Choose a class</option>{classes.filter(c => /^(PP1|PP2|Grade [1-9])$/.test(c.name)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
