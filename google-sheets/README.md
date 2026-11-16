@@ -10,7 +10,7 @@ Only this copied workbook and tabs G1, 2B, 2G, 3B and 3G are accepted. Other tab
 | 3B | Grade 3 | B |
 | 3G | Grade 3 | G |
 
-Headers in each tab: Name, MATH, ENG, READ, KISW, KUS, CRE, ENVI, CREA. MATH, ENG, KISW, CRE, ENVI and CREA map to the matching lower-primary CBC learning areas. READ and KUS are separate English and Kiswahili reading assessments. Scores are out of 100. Exam is End Term 3, 2027 Term 3.
+Headers in each tab: Name, Gender, MATH, ENG, READ, KISW, KUS, CRE, ENVI, CREA. Gender accepts Male, Female or Other and is required only when registering a new learner; matched existing learners do not need a Gender value. MATH, ENG, KISW, CRE, ENVI and CREA map to the matching lower-primary CBC learning areas. READ and KUS are separate English and Kiswahili reading assessments. Scores are out of 100. Exam is End Term 3, 2027 Term 3.
 
 The Edge Function validates the copied workbook ID and the five-tab allowlist, then resolves class and stream records from Smart Minds. It matches learners within their exact class/stream. It creates an exam per class and upserts results.
 
