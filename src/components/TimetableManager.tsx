@@ -39,7 +39,7 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
       supabase.from('classes').select('id,name').eq('school_id',schoolId).order('sort_order'),
       supabase.from('streams').select('*').eq('school_id',schoolId).order('name'),
       supabase.from('subjects').select('id,name,is_examinable').eq('school_id',schoolId).order('name'),
-      supabase.from('class_subjects').select('class_id,subject_id').eq('school_id',schoolId),
+      supabase.from('class_subjects').select('id,class_id,subject_id').eq('school_id',schoolId),
       supabase.from('staff').select('id,first_name,middle_name,last_name,staff_role,status').eq('school_id',schoolId).eq('status','active').order('last_name'),
       supabase.from('timetable_entries').select('*').eq('school_id',schoolId).order('day_of_week').order('start_time')
     ])
