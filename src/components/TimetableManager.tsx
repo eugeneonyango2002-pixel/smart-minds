@@ -17,6 +17,7 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
   const [classes,setClasses] = useState<Row[]>([])
   const [streams,setStreams] = useState<Row[]>([])
   const [subjects,setSubjects] = useState<Row[]>([])
+  const [classSubjectLinks,setClassSubjectLinks] = useState<Row[]>([])
   const [staff,setStaff] = useState<Row[]>([])
   const [entries,setEntries] = useState<Entry[]>([])
   const [form,setForm] = useState(blank)
@@ -32,19 +33,20 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
 
   async function load() {
     setError('')
-    const [y,t,c,st,s,staffRows,e] = await Promise.all([
+    const [y,t,c,st,s,cs,staffRows,e] = await Promise.all([
       supabase.from('academic_years').select('id,name').eq('school_id',schoolId).order('start_date'),
       supabase.from('terms').select('id,name,academic_year_id').eq('school_id',schoolId).order('start_date'),
       supabase.from('classes').select('id,name').eq('school_id',schoolId).order('sort_order'),
       supabase.from('streams').select('*').eq('school_id',schoolId).order('name'),
-      supabase.from('subjects').select('id,name').eq('school_id',schoolId).order('name'),
+      supabase.from('subjects').select('id,name,is_examinable').eq('school_id',schoolId).order('name'),
+      supabase.from('class_subjects').select('class_id,subject_id').eq('school_id',schoolId),
       supabase.from('staff').select('id,first_name,middle_name,last_name,staff_role,status').eq('school_id',schoolId).eq('status','active').order('last_name'),
       supabase.from('timetable_entries').select('*').eq('school_id',schoolId).order('day_of_week').order('start_time')
     ])
-    const failed=[y,t,c,st,s,staffRows,e].find(x=>x.error)
+    const failed=[y,t,c,st,s,cs,staffRows,e].find(x=>x.error)
     if(failed?.error){setError(failed.error.message);return}
     setYears(y.data||[]);setTerms(t.data||[]);setClasses(c.data||[]);setStreams(st.data||[])
-    setSubjects(s.data||[]);setStaff(staffRows.data||[]);setEntries((e.data||[]) as Entry[])
+    setSubjects(s.data||[]);setClassSubjectLinks(cs.data||[]);setStaff(staffRows.data||[]);setEntries((e.data||[]) as Entry[])
     if(!form.academic_year_id && y.data?.[0]) setForm(v=>({...v,academic_year_id:y.data![0].id}))
     if(!filterYear && y.data?.[0]) setFilterYear(y.data[0].id)
   }
@@ -79,6 +81,9 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
   }
 
   const label=(id:string|null,rows:Row[])=>rows.find(x=>x.id===id)?.name||'—'
+  const selectedClassName=classes.find(x=>x.id===form.class_id)?.name||''
+  const isSupportedCBCClass=/^(PP1|PP2|Grade [1-9])$/.test(selectedClassName)
+  const availableSubjects=isSupportedCBCClass?subjects.filter(subject=>classSubjectLinks.some(link=>link.class_id===form.class_id&&link.subject_id===subject.id)):[]
   return <section className="panel student-panel">
     <div className="academic-head"><div><p className="kicker">LESSON PLANNING</p><h2>School timetable</h2><p className="muted">Schedule lessons by class, stream, subject, teacher and weekday.</p></div><button className="secondary" onClick={()=>void load()}><RefreshCw/> Refresh</button></div>
     <label className="school-picker">Select school<select value={schoolId} onChange={e=>setSchoolId(e.target.value)}>{schools.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
@@ -87,9 +92,9 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
       <h3 className="wide">Add a lesson</h3>
       <label>Academic year *<select required value={form.academic_year_id} onChange={e=>setForm(v=>({...v,academic_year_id:e.target.value,term_id:''}))}><option value="">Select year</option>{years.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
       <label>Term<select value={form.term_id} onChange={e=>setForm(v=>({...v,term_id:e.target.value}))}><option value="">All terms / not specified</option>{terms.filter(x=>x.academic_year_id===form.academic_year_id).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-      <label>Class *<select required value={form.class_id} onChange={e=>setForm(v=>({...v,class_id:e.target.value,stream_id:''}))}><option value="">Select class</option>{classes.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+      <label>Class *<select required value={form.class_id} onChange={e=>setForm(v=>({...v,class_id:e.target.value,stream_id:'',subject_id:''}))}><option value="">Select class</option>{classes.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
       <label>Stream<select value={form.stream_id} onChange={e=>setForm(v=>({...v,stream_id:e.target.value}))}><option value="">All / no stream</option>{streams.filter(x=>!x.class_id||x.class_id===form.class_id).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-      <label>Subject *<select required value={form.subject_id} onChange={e=>setForm(v=>({...v,subject_id:e.target.value}))}><option value="">Select subject</option>{subjects.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+      <label>Subject *<select required value={form.subject_id} onChange={e=>setForm(v=>({...v,subject_id:e.target.value}))}><option value="">{form.class_id?(isSupportedCBCClass?'Select a subject allocated to this class':'Senior-school subjects are pending the approved list'):'Select a class first'}</option>{availableSubjects.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
       <label>Teacher<select value={form.teacher_id} onChange={e=>setForm(v=>({...v,teacher_id:e.target.value}))}><option value="">Not assigned</option>{staff.filter(x=>x.staff_role==='teacher').map(x=><option key={x.id} value={x.id}>{staffName(x)}</option>)}</select></label>
       <label>Day *<select required value={form.day_of_week} onChange={e=>setForm(v=>({...v,day_of_week:e.target.value}))}>{days.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
       <label>Start time *<input type="time" required value={form.start_time} onChange={e=>setForm(v=>({...v,start_time:e.target.value}))}/></label>
