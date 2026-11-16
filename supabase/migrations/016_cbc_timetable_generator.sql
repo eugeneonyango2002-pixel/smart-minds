@@ -99,6 +99,7 @@ create table if not exists public.cbc_timetable_profiles (
   first_break_minutes smallint not null,
   second_break_after_period smallint not null,
   second_break_minutes smallint not null,
+  lunch_after_period smallint,
   lunch_minutes smallint not null default 0,
   allow_practical_double_lessons boolean not null default false,
   created_at timestamptz not null default now(),
@@ -112,6 +113,7 @@ create table if not exists public.cbc_timetable_profiles (
       and weekly_total_lessons >= lessons_per_day
       and first_break_minutes >= 0
       and second_break_minutes >= 0
+      and (lunch_after_period is null or lunch_after_period > 0)
       and lunch_minutes >= 0
     ),
   constraint cbc_profile_school_level_unique unique (school_id, level_code),
@@ -146,26 +148,26 @@ insert into public.cbc_timetable_profiles (
   school_id, level_code, reporting_time, lesson_start_time, school_end_time,
   lesson_duration_minutes, lessons_per_day, weekly_total_lessons,
   first_break_after_period, first_break_minutes,
-  second_break_after_period, second_break_minutes, lunch_minutes,
+  second_break_after_period, second_break_minutes, lunch_after_period, lunch_minutes,
   allow_practical_double_lessons
 )
 select
   sc.id, p.level_code, p.reporting_time, p.lesson_start_time, p.school_end_time,
   p.lesson_duration_minutes, p.lessons_per_day, p.weekly_total_lessons,
   p.first_break_after_period, p.first_break_minutes,
-  p.second_break_after_period, p.second_break_minutes, p.lunch_minutes,
+  p.second_break_after_period, p.second_break_minutes, p.lunch_after_period, p.lunch_minutes,
   p.allow_practical_double_lessons
 from public.schools sc
 cross join (values
-  ('pre_primary',   time '08:30', time '09:00', time '12:00', 30, 5, 25, 2, 10, 4, 20, 0, false),
-  ('lower_primary', time '08:00', time '08:20', time '12:30', 30, 6, 31, 2, 10, 4, 30, 0, false),
-  ('upper_primary', time '08:00', time '08:20', time '14:35', 35, 7, 35, 2, 20, 4, 30, 60, false),
-  ('junior_school', time '08:00', time '08:20', time '15:20', 40, 8, 41, 2, 10, 4, 30, 60, true)
+  ('pre_primary',   time '08:30', time '09:00', time '12:00', 30, 5, 25, 2, 10, 4, 20, null, 0, false),
+  ('lower_primary', time '08:00', time '08:20', time '12:30', 30, 6, 31, 2, 10, 4, 30, null, 0, false),
+  ('upper_primary', time '08:00', time '08:20', time '14:35', 35, 7, 35, 2, 20, 4, 30, 6, 80, false),
+  ('junior_school', time '08:00', time '08:20', time '15:20', 40, 8, 41, 2, 10, 4, 30, 6, 60, true)
 ) as p(
   level_code, reporting_time, lesson_start_time, school_end_time,
   lesson_duration_minutes, lessons_per_day, weekly_total_lessons,
   first_break_after_period, first_break_minutes,
-  second_break_after_period, second_break_minutes, lunch_minutes,
+  second_break_after_period, second_break_minutes, lunch_after_period, lunch_minutes,
   allow_practical_double_lessons
 )
 on conflict (school_id, level_code) do nothing;
