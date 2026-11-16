@@ -32,6 +32,7 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
   const [terms, setTerms] = useState<Row[]>([])
   const [classes, setClasses] = useState<Row[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [classSubjectLinks, setClassSubjectLinks] = useState<Row[]>([])
   const [students, setStudents] = useState<Learner[]>([])
   const [exams, setExams] = useState<Exam[]>([])
   const [results, setResults] = useState<Result[]>([])
@@ -54,17 +55,18 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
 
   async function loadSetup() {
     setError('')
-    const [y,t,c,s,st] = await Promise.all([
+    const [y,t,c,s,cs,st] = await Promise.all([
       supabase.from('academic_years').select('id,name').eq('school_id',schoolId).order('start_date'),
       supabase.from('terms').select('id,name,academic_year_id').eq('school_id',schoolId).order('start_date'),
       supabase.from('classes').select('id,name').eq('school_id',schoolId).order('sort_order'),
-      supabase.from('subjects').select('id,name').eq('school_id',schoolId).order('name'),
+      supabase.from('subjects').select('id,name,category').eq('school_id',schoolId).order('name'),
+      supabase.from('class_subjects').select('class_id,subject_id').eq('school_id',schoolId),
       supabase.from('students').select('id,admission_number,first_name,middle_name,last_name,class_id').eq('school_id',schoolId).order('first_name'),
     ])
-    const failed = [y,t,c,s,st].find(x => x.error)
+    const failed = [y,t,c,s,cs,st].find(x => x.error)
     if (failed?.error) { setError(failed.error.message); return }
     setYears(y.data || []); setTerms(t.data || []); setClasses(c.data || [])
-    setSubjects(s.data || []); setStudents((st.data || []) as Learner[])
+    setSubjects(s.data || []); setClassSubjectLinks(cs.data || []); setStudents((st.data || []) as Learner[])
     if (!form.academic_year_id && y.data?.[0]) setForm(v => ({ ...v, academic_year_id: y.data![0].id }))
   }
 
@@ -106,6 +108,7 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
   const selectedExam = exams.find(e => e.id === selectedExamId)
   const examStudents = useMemo(() => students.filter(s => s.class_id === selectedExam?.class_id), [students, selectedExam])
   const existingMark = results.find(r => r.student_id === mark.student_id && r.subject_id === mark.subject_id)
+  const examSubjects = subjects.filter(s => s.category !== 'co_curricular' && classSubjectLinks.some(link => link.class_id === selectedExam?.class_id && link.subject_id === s.id))
 
   async function saveMark(e: FormEvent) {
     e.preventDefault()
@@ -167,10 +170,10 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
         <form className="school-form" onSubmit={saveMark}>
           <h3 className="wide">Record subject mark · {selectedExam.name}</h3>
           <label>Learner *<select required value={mark.student_id} onChange={e => setMark(v => ({...v,student_id:e.target.value}))}><option value="">Select learner</option>{examStudents.map(s => <option key={s.id} value={s.id}>{s.admission_number} · {fullName(s)}</option>)}</select></label>
-          <label>Subject *<select required value={mark.subject_id} onChange={e => setMark(v => ({...v,subject_id:e.target.value}))}><option value="">Select subject</option>{subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+          <label>Subject *<select required value={mark.subject_id} onChange={e => setMark(v => ({...v,subject_id:e.target.value}))}><option value="">Select subject</option>{examSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
           <label>Score *<input required type="number" min="0" max={selectedExam.max_score} step="0.01" value={mark.score} onChange={e => setMark(v => ({...v,score:e.target.value}))} placeholder={'0–' + selectedExam.max_score}/></label>
           <label>Teacher remarks (optional override)<input value={mark.remarks} onChange={e => setMark(v => ({...v,remarks:e.target.value}))} placeholder="Leave blank for automatic CBC feedback"/></label>
-          <button className="primary wide" disabled={busy || !examStudents.length || !subjects.length}>{busy ? 'Saving…' : existingMark ? 'Update mark' : 'Save mark'}</button>
+          <button className="primary wide" disabled={busy || !examStudents.length || !examSubjects.length}>{busy ? 'Saving…' : existingMark ? 'Update mark' : 'Save mark'}</button>
         </form>
         <h3>Marks recorded ({results.length})</h3>
         {results.length === 0 ? <p className="muted">No marks have been entered for this examination.</p> : <div className="table-wrap"><table><thead><tr><th>Learner</th><th>Subject</th><th>Score</th><th>CBC achievement level</th><th>Remarks</th></tr></thead><tbody>{results.map(r => { const s = students.find(x => x.id === r.student_id); const sub = subjects.find(x => x.id === r.subject_id); return <tr key={r.id}><td>{s ? fullName(s) : 'Learner'}</td><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td></tr> })}</tbody></table></div>}
