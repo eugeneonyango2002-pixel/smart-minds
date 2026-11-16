@@ -7,7 +7,7 @@ const cors = {
 };
 
 const BOOK = "1X_lq5SjTQVLZUDPZsykRgyPau3Gpz2NP5D9ZusNGWpI";
-const ALLOWED_TABS = ["G1", "2B", "2G", "3B", "3G"];
+const ALLOWED_TABS = ["G1", "G2", "3B", "3G"];
 
 const json = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), {
@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "POST only." }, 405);
 
   const secret = Deno.env.get("GOOGLE_SHEETS_SYNC_TOKEN") ?? "";
-  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\\s+/i, "");
   if (!secret || token !== secret) return json({ error: "Unauthorized." }, 401);
 
   const url = Deno.env.get("SUPABASE_URL");
@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
 
     if (body?.spreadsheetId !== BOOK || !ALLOWED_TABS.includes(sheetName)) {
       return json({
-        error: "Only G1, 2B, 2G, 3B and 3G in the authorised workbook are allowed.",
+        error: "Only G1, G2, 3B and 3G in the authorised workbook are allowed.",
       }, 403);
     }
 
