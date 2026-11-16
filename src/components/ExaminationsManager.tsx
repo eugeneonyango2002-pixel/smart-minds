@@ -60,7 +60,7 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
       supabase.from('terms').select('id,name,academic_year_id').eq('school_id',schoolId).order('start_date'),
       supabase.from('classes').select('id,name').eq('school_id',schoolId).order('sort_order'),
       supabase.from('subjects').select('id,name,category').eq('school_id',schoolId).order('name'),
-      supabase.from('class_subjects').select('class_id,subject_id').eq('school_id',schoolId),
+      supabase.from('class_subjects').select('id,class_id,subject_id').eq('school_id',schoolId),
       supabase.from('students').select('id,admission_number,first_name,middle_name,last_name,class_id').eq('school_id',schoolId).order('first_name'),
     ])
     const failed = [y,t,c,s,cs,st].find(x => x.error)
