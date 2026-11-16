@@ -40,6 +40,8 @@ create index if not exists class_subjects_teacher_idx
 
 -- Seed standard weekly lesson allocations for the current Kenyan CBC/CBE
 -- learning-area catalogue. PPI is scheduled separately by the generator.
+-- Keep the target table (cs) outside JOIN ... ON clauses: PostgreSQL does not
+-- allow the UPDATE target alias to be referenced from that JOIN's ON clause.
 update public.class_subjects cs
 set lessons_per_week = case
   when c.name in ('PP1','PP2') and s.name = 'Language Activities' then 5
@@ -80,10 +82,11 @@ allow_double_lesson = (
   c.name in ('Grade 7','Grade 8','Grade 9')
   and s.name in ('Integrated Science','Pre-Technical Studies','Agriculture','Creative Arts and Sports')
 )
-from public.classes c
-join public.subjects s on s.id = cs.subject_id and s.school_id = cs.school_id
+from public.classes c, public.subjects s
 where c.id = cs.class_id
-  and c.school_id = cs.school_id;
+  and c.school_id = cs.school_id
+  and s.id = cs.subject_id
+  and s.school_id = cs.school_id;
 
 create table if not exists public.cbc_timetable_profiles (
   id uuid primary key default gen_random_uuid(),
