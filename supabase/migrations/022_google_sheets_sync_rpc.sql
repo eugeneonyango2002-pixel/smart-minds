@@ -70,8 +70,7 @@ begin
     if v_stream is null then raise exception 'Stream % is missing.', v_stream_name; end if;
   end if;
 
-  select count(*), min(id), min(admission_number)
-    into v_count, v_student, v_admission
+  select count(*) into v_count
   from students
   where school_id = v_school and class_id = v_class
     and stream_id is not distinct from v_stream
@@ -79,6 +78,16 @@ begin
       = lower(regexp_replace(trim(v_full_name), '\s+', ' ', 'g'));
 
   if v_count > 1 then raise exception 'Duplicate learner name in %.', v_grade; end if;
+
+  if v_count = 1 then
+    select id, admission_number into v_student, v_admission
+    from students
+    where school_id = v_school and class_id = v_class
+      and stream_id is not distinct from v_stream
+      and lower(regexp_replace(trim(concat_ws(' ',first_name,middle_name,last_name)), '\s+', ' ', 'g'))
+        = lower(regexp_replace(trim(v_full_name), '\s+', ' ', 'g'))
+    limit 1;
+  end if;
 
   if v_count = 0 then
     perform pg_advisory_xact_lock(hashtext(v_school::text), hashtext('student-admission-number'));
