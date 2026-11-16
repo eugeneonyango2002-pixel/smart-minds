@@ -32,5 +32,13 @@ Deno.serve(async req=>{
   for(const [col,name] of Object.entries(SUBJECTS)){const n=getScore(row[col],col);if(n===null)continue;const id=ids.get(name);if(!id||!allowed.has(id))throw Error(cfg.grade+" missing learning-area allocation: "+name);const {error}=await db.from("exam_results").upsert({school_id:SCHOOL,examination_id:examId,student_id:studentId,subject_id:id,score:n,remarks:remark(n)},{onConflict:"examination_id,student_id,subject_id"});if(error)throw error;saved++;}
   for(const [col,component] of Object.entries(READING)){const n=getScore(row[col],col);if(n===null)continue;const {error}=await db.from("reading_assessment_results").upsert({school_id:SCHOOL,examination_id:examId,student_id:studentId,component,score:n},{onConflict:"examination_id,student_id,component"});if(error)throw error;read++;}
   return json({success:true,learner:full,class:cfg.grade,stream:cfg.stream,sheet:tab,admissionNumber:admission,exam:EXAM,learningAreaMarksSaved:saved,readingAssessmentMarksSaved:read});
- }catch(e){console.error(e);return json({error:e instanceof Error?e.message:"Sync failed."},400);}
+ }catch(e){
+  console.error("Google Sheets sync error:",e);
+  const detail = e instanceof Error
+    ? e.message
+    : (e && typeof e === "object"
+        ? [e.message,e.details,e.hint,e.code].filter(Boolean).join(" | ")
+        : String(e || "Unknown sync error."));
+  return json({error:detail || "Unknown sync error."},400);
+ }
 });
