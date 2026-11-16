@@ -137,7 +137,7 @@ begin
     ) as mapping(col, subject_name)
   loop
     if nullif(btrim(coalesce(p_row->>v_column,'')),'') is not null then
-      if (p_row->>v_column) !~ '^[[:space:]]*[0-9]+([.][0-9]+)?[[:space:]]* then
+      if (p_row->>v_column) !~ '^[[:space:]]*[0-9]+([.][0-9]+)?[[:space:]]*$' then
         raise exception '% must be a number from 0 to 100.', v_column;
       end if;
       v_score := btrim(p_row->>v_column)::numeric;
@@ -174,7 +174,7 @@ begin
     select * from (values ('READ','english_reading'),('KUS','kiswahili_reading')) as reading_map(col, component)
   loop
     if nullif(btrim(coalesce(p_row->>v_column,'')),'') is not null then
-      if (p_row->>v_column) !~ '^\\s*[0-9]+(\\.[0-9]+)?\\s*$' then
+      if (p_row->>v_column) !~ '^[[:space:]]*[0-9]+([.][0-9]+)?[[:space:]]*$' then
         raise exception '% must be a number from 0 to 100.', v_column;
       end if;
       v_score := btrim(p_row->>v_column)::numeric;
@@ -239,7 +239,7 @@ grant execute on function public.smart_minds_sync_sheet_row(text,jsonb) to servi
     select * from (values ('READ','english_reading'),('KUS','kiswahili_reading')) as reading_map(col, component)
   loop
     if nullif(btrim(coalesce(p_row->>v_column,'')),'') is not null then
-      if (p_row->>v_column) !~ '^[[:space:]]*[0-9]+([.][0-9]+)?[[:space:]]* then
+      if (p_row->>v_column) !~ '^[[:space:]]*[0-9]+([.][0-9]+)?[[:space:]]*$' then
         raise exception '% must be a number from 0 to 100.', v_column;
       end if;
       v_score := btrim(p_row->>v_column)::numeric;
