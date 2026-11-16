@@ -25,7 +25,7 @@ export default function StudentManager({ schools, canManage = true }: { schools:
     row.push(cell.trim());if(row.some(v=>v!==''))rows.push(row)
     if(rows.length<2)throw new Error('The CSV file must contain a header row and at least one learner.')
     const headers=rows[0].map((h,i)=>(i===0?h.replace(/^\uFEFF/,''):h).trim().toLowerCase().replace(/[\s-]+/g,'_'))
-    if(!headers.includes('first_name')||!headers.includes('last_name'))throw new Error('Required columns are first_name and last_name.')
+    if(!headers.includes('name')&&!headers.includes('full_name')&&!(headers.includes('first_name')&&headers.includes('last_name')))throw new Error('Please include one name column headed name (or full_name).')
     return rows.slice(1).map(values=>Object.fromEntries(headers.map((h,i)=>[h,values[i]||''])))
   }
   async function importCsv(){
@@ -37,8 +37,11 @@ export default function StudentManager({ schools, canManage = true }: { schools:
       if(existingResult.error)throw new Error(existingResult.error.message)
       let next=Math.max(0,...(existingResult.data||[]).map(s=>{const v=String(s.admission_number||'');const suffix=v.startsWith(prefix)?v.slice(prefix.length):'';return /^\d+$/.test(suffix)?Number(suffix):0}))+1
       const payload=csvRows.map((row,index)=>{
-        const first_name=(row.first_name||'').trim(),last_name=(row.last_name||'').trim()
-        if(!first_name||!last_name)throw new Error('Row '+(index+2)+' is missing a first or last name.')
+        const enteredName=(row.name||row.full_name||'').trim()
+        const nameParts=enteredName?enteredName.split(/\s+/):[]
+        const first_name=enteredName?nameParts.shift()||'':(row.first_name||'').trim()
+        const last_name=enteredName?nameParts.join(' '):(row.last_name||'').trim()
+        if(!first_name||!last_name)throw new Error('Row '+(index+2)+' needs a full learner name (at least two names).')
         const className=(row.class||row.class_name||'').trim()
         const classRow=className?classes.find(x=>x.name.toLowerCase()===className.toLowerCase()):undefined
         if(className&&!classRow)throw new Error('Row '+(index+2)+': class "'+className+'" was not found.')
@@ -48,7 +51,7 @@ export default function StudentManager({ schools, canManage = true }: { schools:
         const admission_number=prefix+String(next++).padStart(4,'0')
         const gender=(row.gender||'other').trim().toLowerCase()
         if(!['male','female','other'].includes(gender))throw new Error('Row '+(index+2)+': gender must be male, female or other.')
-        return {school_id:schoolId,admission_number,first_name,middle_name:row.middle_name||null,last_name,gender,date_of_birth:row.date_of_birth||null,admission_date:row.admission_date||new Date().toISOString().slice(0,10),class_id:classRow?.id||null,stream_id:streamRow?.id||null,guardian_name:row.guardian_name||null,guardian_relationship:row.guardian_relationship||null,guardian_phone:row.guardian_phone||null,guardian_email:row.guardian_email||null,address:row.address||null}
+        return {school_id:schoolId,admission_number,first_name,middle_name:enteredName?null:(row.middle_name||null),last_name,gender,date_of_birth:row.date_of_birth||null,admission_date:row.admission_date||new Date().toISOString().slice(0,10),class_id:classRow?.id||null,stream_id:streamRow?.id||null,guardian_name:row.guardian_name||null,guardian_relationship:row.guardian_relationship||null,guardian_phone:row.guardian_phone||null,guardian_email:row.guardian_email||null,address:row.address||null}
       })
       const result=await supabase.from('students').insert(payload)
       if(result.error)throw new Error(result.error.message)
@@ -76,10 +79,10 @@ export default function StudentManager({ schools, canManage = true }: { schools:
     <div className="student-toolbar"><div className="student-search"><Search/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name or admission number"/></div>{canManage&&<button className="primary" disabled={!schoolId} onClick={()=>{if(adding)cancelForm();else{setEditingStudentId(null);setForm(blank);setAdding(true)}setError('');setNotice('')}}><Plus/> Register student</button>}</div>
     {canManage&&<section className="panel" style={{marginTop:16}}>
       <div className="panel-heading"><div><h3><FileSpreadsheet size={18}/> Bulk student upload</h3><p className="muted">Upload a CSV file to register many learners together.</p></div></div>
-      <p className="muted">Required columns: <b>first_name, last_name</b>. Optional: middle_name, gender, date_of_birth, admission_date, class, stream, guardian_name, guardian_relationship, guardian_phone, guardian_email, address. Class and stream names must match those already registered.</p>
+      <p className="muted">Required column: <b>name</b> (the learner's full name in one cell). Optional: gender, date_of_birth, admission_date, class, stream, guardian_name, guardian_relationship, guardian_phone, guardian_email, address. Class and stream names must match those already registered.</p>
       <label>Choose CSV file<input type="file" accept=".csv,text/csv" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;try{setCsvRows(parseCsv(await file.text()));setCsvName(file.name);setError('');setNotice('')}catch(err){setCsvRows([]);setCsvName('');setError(err instanceof Error?err.message:'Unable to read CSV file.')}}}/></label>
       {csvName&&<p className="muted">{csvName} · {csvRows.length} learner row(s) ready</p>}
-      {csvRows.length>0&&<><div className="table-wrap"><table><thead><tr><th>First name</th><th>Middle name</th><th>Last name</th><th>Class</th></tr></thead><tbody>{csvRows.slice(0,5).map((row,i)=><tr key={i}><td>{row.first_name}</td><td>{row.middle_name||'—'}</td><td>{row.last_name}</td><td>{row.class||row.class_name||'—'}</td></tr>)}</tbody></table></div><p className="muted">Admission numbers will be generated as SM/{new Date().getFullYear()}/0001, then incremented automatically.</p><div className="academic-form-actions"><button type="button" className="secondary" onClick={()=>{setCsvRows([]);setCsvName('')}}>Cancel upload</button><button type="button" className="primary" disabled={uploading||!schoolId} onClick={()=>void importCsv()}><Upload size={16}/>{uploading?'Importing…':'Import '+csvRows.length+' learners'}</button></div></>}
+      {csvRows.length>0&&<><div className="table-wrap"><table><thead><tr><th>Learner name</th><th>Class</th></tr></thead><tbody>{csvRows.slice(0,5).map((row,i)=><tr key={i}><td>{row.name||row.full_name||[row.first_name,row.middle_name,row.last_name].filter(Boolean).join(' ')}</td><td>{row.class||row.class_name||'—'}</td></tr>)}</tbody></table></div><p className="muted">Admission numbers will be generated as SM/{new Date().getFullYear()}/0001, then incremented automatically.</p><div className="academic-form-actions"><button type="button" className="secondary" onClick={()=>{setCsvRows([]);setCsvName('')}}>Cancel upload</button><button type="button" className="primary" disabled={uploading||!schoolId} onClick={()=>void importCsv()}><Upload size={16}/>{uploading?'Importing…':'Import '+csvRows.length+' learners'}</button></div></>}
     </section>}
 
     {error&&<p className="alert error"><XCircle/>{error}</p>}{notice&&<p className="alert success"><CheckCircle2/>{notice}</p>}
