@@ -11,6 +11,7 @@ export default function ParentManager({ schools }: { schools: School[] }) {
   const [learners, setLearners] = useState<Learner[]>([])
   const [classes, setClasses] = useState<ClassRow[]>([])
   const [parentName, setParentName] = useState('')
+  const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [temporaryPassword, setTemporaryPassword] = useState('')
   const [relationship, setRelationship] = useState('Parent')
@@ -54,7 +55,7 @@ export default function ParentManager({ schools }: { schools: School[] }) {
     setBusy(true); setError(''); setNotice('')
     try {
       const result = await supabase.functions.invoke('create-parent-account', {
-        body: { school_id: schoolId, parent_name: parentName.trim(), phone: phone.trim(), password: temporaryPassword, student_ids: selected, relationship },
+        body: { school_id: schoolId, parent_name: parentName.trim(), email: email.trim().toLowerCase(), phone: phone.trim(), password: temporaryPassword, student_ids: selected, relationship },
       })
       if (result.error) {
         const context = (result.error as any).context
@@ -69,8 +70,8 @@ export default function ParentManager({ schools }: { schools: School[] }) {
         throw new Error(result.error.message)
       }
       if (result.data?.error) throw new Error(result.data.error)
-      setNotice('Parent account created. Give the parent their phone number and temporary password securely.')
-      setParentName(''); setPhone(''); setTemporaryPassword(''); setSelected([]); setRelationship('Parent')
+      setNotice('Parent account created. Give the parent their email address and temporary password securely.')
+      setParentName(''); setEmail(''); setPhone(''); setTemporaryPassword(''); setSelected([]); setRelationship('Parent')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create the parent account.')
     } finally { setBusy(false) }
@@ -83,6 +84,7 @@ export default function ParentManager({ schools }: { schools: School[] }) {
     {notice && <p className="alert success"><CheckCircle2 />{notice}</p>}
     <form className="school-form" onSubmit={createParent}>
       <label>Parent / guardian full name *<input required value={parentName} onChange={e => setParentName(e.target.value)} placeholder="Enter full name" /></label>
+      <label>Email address *<input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="parent@example.com" /></label>
       <label>Phone number *<input required value={phone} onChange={e => setPhone(e.target.value)} placeholder="+2547XXXXXXXX" /></label>
       <label>Temporary password *<input required type="password" minLength={8} autoComplete="new-password" value={temporaryPassword} onChange={e => setTemporaryPassword(e.target.value)} placeholder="At least 8 characters" /></label>
       <label>Relationship to learner<select value={relationship} onChange={e => setRelationship(e.target.value)}><option>Parent</option><option>Mother</option><option>Father</option><option>Guardian</option><option>Other</option></select></label>
