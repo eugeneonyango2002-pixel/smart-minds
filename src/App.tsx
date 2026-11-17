@@ -746,6 +746,7 @@ export default function App() {
       {loginType === 'parent' && mode === 'login' && <p className="muted">Parent accounts are created by the school. Use the email address and temporary password provided by the school.</p>}
       <p className="switch">{mode === 'login' ? "Don't have an account?" : 'Already registered?'} <button onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setLoginType('staff'); setError(''); setNotice('') }}>{mode === 'login' ? 'Create account' : 'Sign in'}</button></p>
       {error && <p className="alert error"><XCircle />{error}</p>}{notice && <p className="alert success"><CheckCircle2 />{notice}</p>}
+      <footer className="app-footer login-footer"><span>Powered by <b>Smart Minds</b></span><span className="developer-credit">Developed by <b>Eugene Media Graphix</b> · 0757783275 · eugeneaswani6@gmail.com</span></footer>
     </div></section>
   </main>
 
