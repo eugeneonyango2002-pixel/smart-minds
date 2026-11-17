@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://eugeneonyango2002-pixel.github.io/smart-minds/sitemap.xml
