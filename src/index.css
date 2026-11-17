@@ -736,3 +736,27 @@ tbody tr:hover{background:#f8fbff}
   body.printing-bulk-reports .bulk-report-signatures{display:flex!important;justify-content:space-between!important;gap:8px!important;margin-top:auto!important;padding-top:18px!important;font-size:7pt!important}
   body.printing-bulk-reports .bulk-report-page>footer{margin-top:10px!important;padding-top:5px!important;border-top:1px solid #dce6f0!important;text-align:center!important;font-size:7pt!important;color:#73859a!important}
 }
+
+/* Refined school-branded academic report header. */
+.bulk-report-school-brand{display:flex;align-items:center;justify-content:center;gap:15px;width:100%;padding:10px 14px 12px;border-bottom:3px solid #1d609d;background:linear-gradient(110deg,#f0f6fd,#fff)}
+.bulk-report-school-brand>img,.bulk-report-logo-placeholder{flex:0 0 68px;width:68px;height:68px;object-fit:contain;border-radius:12px}
+.bulk-report-logo-placeholder{display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#12375f,#2685b4);color:#fff;font-size:21px;font-weight:900;letter-spacing:1px}
+.bulk-report-school-identity{min-width:0;text-align:center}
+.bulk-report-school-identity h1{margin:0;color:#12375f;font-size:25px;font-weight:900;line-height:1.12;letter-spacing:.3px}
+.bulk-report-motto{margin:4px 0;color:#59728d;font-size:10px;font-style:italic}
+.bulk-report-school-contacts{display:flex;flex-wrap:wrap;justify-content:center;gap:3px 12px;margin-top:5px;color:#4d647d;font-size:8px}
+.bulk-report-title-band{margin-top:7px;padding:6px 10px;border-radius:5px;background:linear-gradient(100deg,#12375f,#247bb0);color:#fff;text-align:center}
+.bulk-report-title-band span{display:block;font-size:6.5pt;font-weight:700;letter-spacing:1.5px;opacity:.85}
+.bulk-report-title-band h2{margin:2px 0 0;color:#fff;font-size:11pt;font-weight:800;letter-spacing:1px}
+@media print{
+ body.printing-bulk-reports .bulk-report-heading{display:block!important;margin:0 0 9px!important;padding:0!important;border:0!important;background:#fff!important}
+ body.printing-bulk-reports .bulk-report-school-brand{display:flex!important;gap:10px!important;padding:8px 10px 9px!important;border-bottom:3px solid #1d609d!important;background:#f0f6fd!important}
+ body.printing-bulk-reports .bulk-report-school-brand>img,
+ body.printing-bulk-reports .bulk-report-logo-placeholder{flex:0 0 56px!important;width:56px!important;height:56px!important;border-radius:8px!important}
+ body.printing-bulk-reports .bulk-report-school-identity h1{font-size:18pt!important;font-weight:900!important;line-height:1.1!important;color:#12375f!important}
+ body.printing-bulk-reports .bulk-report-motto{margin:3px 0!important;font-size:7pt!important}
+ body.printing-bulk-reports .bulk-report-school-contacts{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:2px 9px!important;margin-top:4px!important;font-size:6.5pt!important;line-height:1.15!important}
+ body.printing-bulk-reports .bulk-report-title-band{margin-top:5px!important;padding:5px 8px!important;border-radius:3px!important;background:#174f80!important;color:#fff!important}
+ body.printing-bulk-reports .bulk-report-title-band span{font-size:6pt!important}
+ body.printing-bulk-reports .bulk-report-title-band h2{margin:2px 0 0!important;color:#fff!important;font-size:10pt!important}
+}
