@@ -35,7 +35,7 @@ export default function SchoolReports({ schools }: { schools: School[] }) {
   useEffect(() => {
     if (!schoolId && schools.length) setSchoolId(schools.find(s => (s as any).status === 'approved')?.id || schools[0].id)
   }, [schools, schoolId])
-  useEffect(() => { if (schoolId) void load() }, [schoolId])
+  useEffect(() => { if (schoolId) void load() }, [schoolId, startDate, endDate])
 
   async function load() {
     setBusy(true); setError('')
