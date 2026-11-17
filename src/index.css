@@ -897,7 +897,7 @@ tbody tr:hover{background:#f8fbff}
     color:#172f4b!important;font-family:Arial,sans-serif!important;font-size:7pt!important;line-height:1.12!important;
     break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;
   }
-  body.printing-single-report:after{display:none!important;content:none!important}
+  body.printing-single-report:after{display:block!important;content:"Powered by Smart Minds  |  Developed by Eugene Media Graphix  |  0757783275  |  eugeneaswani6@gmail.com"!important;visibility:visible!important;position:fixed!important;left:0!important;right:0!important;bottom:0!important;padding:4px 0!important;border-top:1px solid #dce6f0!important;background:#fff!important;color:#526b84!important;text-align:center!important;font:6.5pt Arial,sans-serif!important;z-index:99999!important}
   body.printing-single-report #learner-report-card .panel-heading{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:5mm!important;margin:0 0 3mm!important;padding:0 0 2mm!important}
   body.printing-single-report #learner-report-card .panel-heading h2{font-size:13pt!important;margin:0!important}
   body.printing-single-report #learner-report-card .panel-heading .kicker{font-size:6pt!important;margin:0 0 1mm!important}
