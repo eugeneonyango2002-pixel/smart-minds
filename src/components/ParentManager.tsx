@@ -56,7 +56,18 @@ export default function ParentManager({ schools }: { schools: School[] }) {
       const result = await supabase.functions.invoke('create-parent-account', {
         body: { school_id: schoolId, parent_name: parentName.trim(), phone: phone.trim(), password: temporaryPassword, student_ids: selected, relationship },
       })
-      if (result.error) throw new Error(result.error.message)
+      if (result.error) {
+        const context = (result.error as any).context
+        if (context && typeof context.json === 'function') {
+          try {
+            const details = await context.clone().json()
+            throw new Error(details?.error || details?.message || result.error.message)
+          } catch (detailError) {
+            if (detailError instanceof Error && detailError.message !== result.error.message) throw detailError
+          }
+        }
+        throw new Error(result.error.message)
+      }
       if (result.data?.error) throw new Error(result.data.error)
       setNotice('Parent account created. Give the parent their phone number and temporary password securely.')
       setParentName(''); setPhone(''); setTemporaryPassword(''); setSelected([]); setRelationship('Parent')
