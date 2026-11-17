@@ -180,3 +180,103 @@ footer span{display:none}
 .parent-fee-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0 18px}.parent-fee-totals>div{background:#f5f8fc;border:1px solid #e7edf5;border-radius:10px;padding:13px;display:grid;gap:6px}.parent-fee-totals span{font-size:11px;color:#77869a}.parent-fee-totals b{font:800 17px Manrope;color:#183b64}@media(max-width:620px){.parent-fee-totals{grid-template-columns:1fr}}
 
 .announcement-list,.parent-announcement-list{display:grid;gap:12px}.announcement-item,.parent-announcement{border:1px solid #e6edf5;border-radius:11px;padding:15px;background:#fff}.announcement-item{display:flex;justify-content:space-between;gap:16px}.announcement-item h3,.parent-announcement h3{margin:9px 0 6px;font-size:16px;color:#1d3553}.announcement-item p,.parent-announcement p{margin:0;white-space:pre-wrap;line-height:1.6;color:#526176;font-size:13px}.announcement-meta{display:flex;align-items:center;gap:10px}.announcement-meta small,.parent-announcement small{font-size:11px;color:#8592a3}.announcement-actions{display:flex;gap:7px;align-items:flex-start;flex-shrink:0}.announcement-actions svg{width:16px}.parent-announcement-list{grid-template-columns:1fr}.parent-announcement{background:#f9fbfe}.parent-announcement h3{margin-top:6px}@media(max-width:620px){.announcement-item{display:grid}.announcement-actions{justify-content:flex-start}}
+
+
+/* Smart Minds Parent Portal — refreshed premium dashboard */
+.parent-portal{
+  background:radial-gradient(ellipse at 12% 0%,#e5f1ff 0,transparent 34%),linear-gradient(180deg,#f4f8fd 0%,#f7f9fc 100%);
+  color:#192f4b;
+}
+.parent-portal-header{
+  position:relative;overflow:hidden;min-height:82px;
+  background:linear-gradient(112deg,#0b2545 0%,#124d83 58%,#1676a8 100%);
+  box-shadow:0 8px 28px #0b31501c;
+}
+.parent-portal-header:after{
+  content:"";position:absolute;width:260px;height:260px;border:1px solid #ffffff18;border-radius:50%;
+  right:8%;top:-190px;box-shadow:0 0 0 28px #ffffff08,0 0 0 58px #ffffff06;pointer-events:none;
+}
+.parent-brand,.parent-portal-header button{position:relative;z-index:1}
+.parent-logo{width:44px;height:44px;border:1px solid #ffffff30;background:linear-gradient(145deg,#ffffff30,#ffffff0b);box-shadow:0 5px 16px #061b3330}
+.parent-brand b{letter-spacing:1.5px}
+.parent-portal-header .secondary{border-radius:10px;backdrop-filter:blur(8px);transition:background .2s,transform .2s}
+.parent-portal-header .secondary:hover{background:#ffffff2b;transform:translateY(-1px)}
+.parent-portal-main{max-width:1160px;padding-top:34px;padding-bottom:40px}
+.parent-welcome{
+  position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;
+  min-height:160px;padding:28px 32px;margin-bottom:20px;border-radius:20px;
+  color:white;background:linear-gradient(115deg,#12375f 0%,#176aa1 66%,#2592b5 100%);
+  box-shadow:0 14px 35px #164c7626;
+}
+.parent-welcome:after{content:"";position:absolute;width:245px;height:245px;border:1px solid #ffffff25;border-radius:50%;right:8%;top:-130px;box-shadow:0 0 0 24px #ffffff0c,0 0 0 50px #ffffff08}
+.parent-welcome>div{position:relative;z-index:1}
+.parent-welcome .kicker{color:#b9e3ff;letter-spacing:2px}
+.parent-welcome h1{color:white;font-size:clamp(24px,3vw,34px);letter-spacing:-.8px;margin-bottom:8px}
+.parent-welcome .muted{color:#d6eafa;font-size:14px;margin:0}
+.parent-portal .panel{
+  border:1px solid #e5edf6;border-radius:16px;background:#fff;
+  box-shadow:0 5px 20px #173b6209;transition:box-shadow .2s,border-color .2s;
+}
+.parent-portal .panel:hover{border-color:#d7e5f3;box-shadow:0 9px 26px #173b6210}
+.parent-child-picker{max-width:100%;color:#425875}
+.parent-child-picker select{
+  max-width:520px;min-height:48px;border:1px solid #dce7f2;border-radius:11px;
+  color:#193653;font-weight:600;background:linear-gradient(180deg,#fff,#f9fbfe);
+  box-shadow:0 2px 5px #173b6208;cursor:pointer;
+}
+.parent-learner-summary{border-color:#eaf0f6}
+.parent-learner-summary h2{font-size:22px;color:#173553}
+.parent-stats{gap:15px;margin:18px 0 22px}
+.parent-stats .panel{
+  position:relative;overflow:hidden;min-height:142px;padding:20px 21px;
+  border-radius:16px;gap:10px;
+}
+.parent-stats .panel:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-30px;top:-35px;background:#eaf4ff}
+.parent-stats .panel:nth-child(2):after{background:#e7f8f2}
+.parent-stats .panel:nth-child(3):after{background:#f2edff}
+.parent-stats svg{position:relative;z-index:1;width:22px;height:22px;color:#2478b8}
+.parent-stats .panel:nth-child(2) svg{color:#21936e}
+.parent-stats .panel:nth-child(3) svg{color:#7961bd}
+.parent-stats span{font-size:12px;color:#72849a}
+.parent-stats b{font-size:25px;color:#173553;letter-spacing:-.5px}
+.parent-section{padding:22px;margin:16px 0}
+.parent-section .panel-heading{padding-bottom:14px;border-bottom:1px solid #edf2f7;margin-bottom:17px}
+.parent-section .panel-heading h2{font-size:17px;color:#1b3858}
+.parent-section .panel-heading h2 svg{width:19px;height:19px}
+.parent-section .panel-heading>span{padding:6px 10px;border-radius:20px;background:#f0f6fc;color:#5d7896;font-size:10px;font-weight:700}
+.parent-announcement{border:1px solid #e4edf6;border-left:3px solid #2b83bb;border-radius:12px;background:linear-gradient(110deg,#f8fbff,#fff);padding:17px 18px}
+.parent-announcement h3{font:700 15px Manrope;color:#173b5d}
+.parent-announcement p{font-size:13px;line-height:1.75}
+.parent-portal .table-wrap{border:1px solid #e9eff5;border-radius:11px}
+.parent-portal table{min-width:620px}
+.parent-portal th{background:#f4f8fc;color:#71849a;font-size:10px;padding:13px}
+.parent-portal td{font-size:12px;padding:13px;color:#4b6078}
+.parent-portal tbody tr:last-child td{border-bottom:0}
+.parent-portal tbody tr:hover{background:#f8fbff}
+.parent-fee-totals>div{border:1px solid #e5edf6;border-radius:12px;background:linear-gradient(145deg,#f8fbff,#f1f6fc);padding:16px}
+.parent-fee-totals>div:last-child{background:linear-gradient(145deg,#eef8f4,#f7fcfa);border-color:#dcefe6}
+.parent-fee-totals b{font-size:18px}
+.parent-portal-main>footer{justify-content:center;color:#94a3b5;font-size:11px;padding:22px 0;border-color:#e5edf5}
+.parent-portal .alert.error{border:1px solid #f4d8d8;border-radius:12px;padding:14px}
+@media(max-width:620px){
+  .parent-portal-header{min-height:72px;gap:7px}
+  .parent-brand{gap:8px;min-width:0}
+  .parent-brand b{font-size:11px}
+  .parent-brand small{font-size:9px}
+  .parent-logo{width:36px;height:36px;flex-shrink:0}
+  .parent-portal-header .secondary{font-size:10px;padding:8px 9px;white-space:nowrap}
+  .parent-portal-main{padding:18px 12px 28px}
+  .parent-welcome{min-height:142px;padding:22px 19px;border-radius:16px}
+  .parent-welcome h1{font-size:23px;overflow-wrap:anywhere}
+  .parent-welcome .muted{font-size:12px}
+  .parent-stats{grid-template-columns:1fr 1fr;gap:9px}
+  .parent-stats .panel{min-height:122px;padding:14px;gap:7px}
+  .parent-stats .panel:last-child{grid-column:1/-1}
+  .parent-stats b{font-size:21px;overflow-wrap:anywhere}
+  .parent-section{padding:15px;margin:12px 0}
+  .parent-section .panel-heading{align-items:flex-start;gap:8px}
+  .parent-section .panel-heading h2{font-size:15px}
+  .parent-section .panel-heading>span{white-space:nowrap}
+  .parent-fee-totals{grid-template-columns:1fr}
+  .parent-portal .panel:hover{transform:none}
+}
