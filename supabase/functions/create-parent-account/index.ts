@@ -1,0 +1,65 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") return new Response("ok");
+  if (request.method !== "POST") return Response.json({ error: "POST required" }, { status: 405 });
+
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const authorization = request.headers.get("Authorization") || "";
+  const caller = createClient(url, anon, { global: { headers: { Authorization: authorization } } });
+  const { data: authData, error: authError } = await caller.auth.getUser();
+  if (authError || !authData.user) return Response.json({ error: "Sign in required." }, { status: 401 });
+
+  const input = await request.json();
+  const schoolId = String(input.school_id || "");
+  const name = String(input.parent_name || "").trim();
+  const phone = String(input.phone || "").trim();
+  const password = String(input.password || "");
+  const studentIds = Array.isArray(input.student_ids) ? [...new Set(input.student_ids.map(String))] : [];
+  if (!schoolId || !name || !phone || password.length < 8 || !studentIds.length) {
+    return Response.json({ error: "Complete all fields and select at least one learner. Password must be 8 characters or more." }, { status: 400 });
+  }
+  if (!/^\+[1-9]\d{7,14}$/.test(phone)) return Response.json({ error: "Use international phone format, e.g. +2547XXXXXXXX." }, { status: 400 });
+
+  const { data: staff } = await caller.from("staff_login_accounts").select("role")
+    .eq("auth_user_id", authData.user.id).eq("school_id", schoolId).eq("status", "active").maybeSingle();
+  if (!staff || !["school_admin", "head_teacher", "secretary"].includes(staff.role)) {
+    return Response.json({ error: "You are not authorised to create parent accounts." }, { status: 403 });
+  }
+
+  const admin = createClient(url, service);
+  const { data: learners, error: learnersError } = await admin.from("students").select("id")
+    .eq("school_id", schoolId).in("id", studentIds);
+  if (learnersError || !learners || learners.length !== studentIds.length) {
+    return Response.json({ error: "Check that all selected learners belong to this school." }, { status: 400 });
+  }
+
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    phone, password, phone_confirm: true, user_metadata: { full_name: name, account_type: "parent" },
+  });
+  if (createError || !created.user) return Response.json({ error: createError?.message || "Unable to create login." }, { status: 400 });
+
+  const { data: account, error: accountError } = await admin.from("parent_accounts").insert({
+    school_id: schoolId, auth_user_id: created.user.id, parent_name: name, phone,
+    status: "active", created_by: authData.user.id,
+  }).select("id").single();
+  if (accountError || !account) {
+    await admin.auth.admin.deleteUser(created.user.id);
+    return Response.json({ error: accountError?.message || "Unable to save parent account." }, { status: 400 });
+  }
+
+  const links = studentIds.map((student_id) => ({
+    school_id: schoolId, parent_account_id: account.id, student_id,
+    relationship: String(input.relationship || "Parent"),
+  }));
+  const { error: linksError } = await admin.from("parent_students").insert(links);
+  if (linksError) {
+    await admin.from("parent_accounts").delete().eq("id", account.id);
+    await admin.auth.admin.deleteUser(created.user.id);
+    return Response.json({ error: linksError.message }, { status: 400 });
+  }
+
+  return Response.json({ success: true, message: "Parent account created." });
+});
