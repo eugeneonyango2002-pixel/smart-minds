@@ -508,3 +508,127 @@ footer{color:#8b99ad}
   .panel-heading h2{font-size:16px}
   .parent-portal-main{padding-top:20px}
 }
+
+
+/* Premium dashboard treatment — inspired by the original Parent Portal design */
+:root{
+  --sm-primary:#2467b8;
+  --sm-primary-dark:#174f98;
+  --sm-navy:#102d52;
+  --sm-page:#f3f7fc;
+  --sm-text:#193653;
+  --sm-muted:#74869c;
+  --sm-border:#e4edf6;
+  --sm-radius:16px;
+  --sm-shadow:0 8px 24px rgba(20,55,91,.07);
+}
+body{background:radial-gradient(ellipse at 12% 0%,#eaf3ff 0,transparent 32%),linear-gradient(180deg,#f4f8fd 0%,#f7f9fc 100%)}
+.sidebar{background:linear-gradient(150deg,#0d2545 0%,#124b7b 100%)}
+@media(min-width:681px){.sidebar{padding-left:28px;padding-right:28px;min-height:82px}}
+.nav{border-radius:10px}
+.nav.active,.nav:hover{background:rgba(255,255,255,.17);color:#fff}
+header{min-height:96px;border-bottom:1px solid #e5edf5}
+header h1{font-size:24px;color:#173553}
+.dashboard{padding-top:28px}
+.welcome{
+  position:relative;isolation:isolate;overflow:hidden;
+  min-height:150px;padding:27px 30px;margin:0 0 22px;
+  border-radius:19px;color:#fff;
+  background:linear-gradient(112deg,#12375f 0%,#176aa1 66%,#258bb2 100%);
+  box-shadow:0 14px 32px rgba(22,76,118,.16);
+}
+.welcome:after{
+  content:"";position:absolute;z-index:-1;width:245px;height:245px;
+  border:1px solid rgba(255,255,255,.18);border-radius:50%;
+  right:8%;top:-135px;box-shadow:0 0 0 25px rgba(255,255,255,.06),0 0 0 52px rgba(255,255,255,.04);
+}
+.welcome h2{font-size:26px;color:#fff;font-weight:800}
+.welcome p{color:#d7ebfb}
+.welcome .kicker{color:#b9e3ff}
+.welcome .muted{color:#d6eafa}
+.panel{border:1px solid #e5edf6;border-radius:17px;background:#fff;box-shadow:0 6px 22px rgba(23,59,98,.055)}
+.stats .panel{min-height:136px;padding:21px}
+.stats .panel:after{width:105px;height:105px;right:-36px;top:-42px;background:#eaf4ff}
+.stats .panel:nth-child(2):after{background:#e7f8f2}
+.stats .panel:nth-child(3):after{background:#f2edff}
+.stats .panel:nth-child(4):after{background:#fff2e4}
+.stats svg{color:#2478b8}
+.stats .panel:nth-child(2) svg{color:#21936e}
+.stats .panel:nth-child(3) svg{color:#7961bd}
+.stats span{color:#72849a}
+.stats b{color:#173553;font-size:25px}
+.panel-heading h2{color:#1b3858}
+.primary{background:linear-gradient(115deg,#1767a4,#247fba);box-shadow:0 5px 13px rgba(23,103,164,.18)}
+.primary:hover{background:linear-gradient(115deg,#12598f,#1d6da5)}
+.secondary{border-color:#dce7f2}
+.school-form,.academic-form,.student-form{background:#f8fbff;border-color:#e5edf6}
+.student-search{border-color:#dce7f2;background:#fff}
+.table-wrap{border:1px solid #e9eff5;border-radius:12px;overflow-x:auto}
+th{background:#f4f8fc;color:#71849a}
+td{color:#4b6078}
+tbody tr:hover{background:#f8fbff}
+.status{font-weight:700}
+
+/* Restore the distinctive premium Parent Portal welcome banner and card styling. */
+.parent-portal{background:radial-gradient(ellipse at 12% 0%,#e5f1ff 0,transparent 34%),linear-gradient(180deg,#f4f8fd 0%,#f7f9fc 100%);color:#192f4b}
+.parent-portal-header{min-height:82px;background:linear-gradient(112deg,#0b2545 0%,#124d83 58%,#1676a8 100%);box-shadow:0 8px 28px rgba(11,49,80,.12)}
+.parent-portal-header:after{display:block}
+.parent-logo{width:44px;height:44px;border:1px solid #ffffff30;background:linear-gradient(145deg,#ffffff30,#ffffff0b);box-shadow:0 5px 16px rgba(6,27,51,.18)}
+.parent-brand b{letter-spacing:1.5px}
+.parent-portal-header .secondary{border-radius:10px;background:#ffffff18;border:1px solid #ffffff35;color:#fff}
+.parent-portal-main{max-width:1160px;padding-top:34px;padding-bottom:40px}
+.parent-welcome{
+  position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:space-between;
+  min-height:160px;padding:28px 32px;margin-bottom:20px;border-radius:20px;
+  color:#fff;background:linear-gradient(115deg,#12375f 0%,#176aa1 66%,#2592b5 100%);
+  box-shadow:0 14px 35px rgba(22,76,118,.16);
+}
+.parent-welcome:after{display:block;position:absolute;z-index:-1;width:245px;height:245px;border:1px solid rgba(255,255,255,.2);border-radius:50%;right:8%;top:-130px;box-shadow:0 0 0 24px rgba(255,255,255,.06),0 0 0 50px rgba(255,255,255,.04)}
+.parent-welcome>div{position:relative;z-index:1}
+.parent-welcome .kicker{color:#b9e3ff;letter-spacing:2px}
+.parent-welcome h1{color:#fff;font-size:clamp(24px,3vw,34px);letter-spacing:-.8px;margin-bottom:8px}
+.parent-welcome .muted{color:#d6eafa;font-size:14px;margin:0}
+.parent-portal .panel{border:1px solid #e5edf6;border-radius:16px;background:#fff;box-shadow:0 5px 20px rgba(23,59,98,.055)}
+.parent-child-picker select{min-height:48px;border:1px solid #dce7f2;border-radius:11px;color:#193653;font-weight:600;background:linear-gradient(180deg,#fff,#f9fbfe)}
+.parent-stats{gap:15px;margin:18px 0 22px}
+.parent-stats .panel{position:relative;overflow:hidden;min-height:142px;padding:20px 21px;border-radius:16px}
+.parent-stats .panel:after{display:block;content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-30px;top:-35px;background:#eaf4ff}
+.parent-stats .panel:nth-child(2):after{background:#e7f8f2}
+.parent-stats .panel:nth-child(3):after{background:#f2edff}
+.parent-stats svg{position:relative;z-index:1;width:22px;height:22px;color:#2478b8}
+.parent-stats .panel:nth-child(2) svg{color:#21936e}
+.parent-stats .panel:nth-child(3) svg{color:#7961bd}
+.parent-stats span{font-size:12px;color:#72849a}
+.parent-stats b{font-size:25px;color:#173553;letter-spacing:-.5px}
+.parent-section{padding:22px;margin:16px 0}
+.parent-section .panel-heading{padding-bottom:14px;border-bottom:1px solid #edf2f7;margin-bottom:17px}
+.parent-section .panel-heading h2{font-size:17px;color:#1b3858}
+.parent-section .panel-heading>span{padding:6px 10px;border-radius:20px;background:#f0f6fc;color:#5d7896;font-size:10px;font-weight:700}
+.parent-announcement{border:1px solid #e4edf6;border-left:3px solid #2b83bb;border-radius:12px;background:linear-gradient(110deg,#f8fbff,#fff);padding:17px 18px}
+.parent-announcement h3{font-weight:800;color:#173b5d}
+.parent-announcement p{font-size:13px;line-height:1.75}
+.parent-portal .table-wrap{border:1px solid #e9eff5;border-radius:11px}
+.parent-portal th{background:#f4f8fc;color:#71849a;font-size:10px;padding:13px}
+.parent-portal td{font-size:12px;padding:13px;color:#4b6078}
+.parent-portal tbody tr:hover{background:#f8fbff}
+.parent-fee-totals>div{border:1px solid #e5edf6;border-radius:12px;background:linear-gradient(145deg,#f8fbff,#f1f6fc);padding:16px}
+.parent-fee-totals>div:last-child{background:linear-gradient(145deg,#eef8f4,#f7fcfa);border-color:#dcefe6}
+.parent-fee-totals b{font-size:18px}
+@media(max-width:680px){
+ .welcome{min-height:135px;padding:20px 18px;border-radius:16px}
+ .welcome h2{font-size:21px}
+ .parent-portal-header{min-height:72px;padding:12px;gap:7px}
+ .parent-portal-main{padding:18px 12px 28px}
+ .parent-welcome{min-height:142px;padding:22px 19px;border-radius:16px}
+ .parent-welcome h1{font-size:23px;overflow-wrap:anywhere}
+ .parent-welcome .muted{font-size:12px}
+ .parent-stats{grid-template-columns:1fr 1fr;gap:9px}
+ .parent-stats .panel{min-height:122px;padding:14px;gap:7px}
+ .parent-stats .panel:last-child{grid-column:1/-1}
+ .parent-stats b{font-size:21px;overflow-wrap:anywhere}
+ .parent-section{padding:15px;margin:12px 0}
+ .parent-section .panel-heading{align-items:flex-start;gap:8px}
+ .parent-section .panel-heading h2{font-size:15px}
+ .parent-section .panel-heading>span{white-space:nowrap}
+ .parent-fee-totals{grid-template-columns:1fr}
+}
