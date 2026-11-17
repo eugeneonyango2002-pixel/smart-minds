@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, UserPlus, Copy, Upload } from 'lucide-react'
+import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, UserPlus, Copy, Upload, FileSpreadsheet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type School = { id: string; name: string; status?: string }
@@ -160,6 +160,11 @@ export default function StaffManager({ schools }: { schools: School[] }) {
     values.push(value.trim())
     return values
   }
+  function downloadStaffTemplate() {
+    const csv = 'Name,Phone,Email,Role,Employment Type,Date Joined\nExample Teacher,0712345678,teacher@example.com,teacher,permanent,2026-01-01\n'
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+    const link = document.createElement('a'); link.href = url; link.download = 'Smart_Minds_Staff_Registration_Template.csv'; link.click(); URL.revokeObjectURL(url)
+  }
   async function importStaffFile(file?: File) {
     if (!file || !schoolId) return
     setImporting(true); setError(''); setNotice('')
@@ -226,6 +231,7 @@ export default function StaffManager({ schools }: { schools: School[] }) {
     <label className="school-picker">Select school<select value={schoolId} onChange={e => { setSchoolId(e.target.value); setAdding(false) }}>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
     <div className="student-toolbar"><div className="student-search"><Search /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, staff number, phone or email" /></div><button className="primary" disabled={!schoolId} onClick={() => { setAdding(!adding); setEditingId(null); setForm(blank); setError(''); setNotice('') }}><Plus /> Add staff member</button></div>
     <div className="student-toolbar" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
+      <button type="button" className="secondary" onClick={downloadStaffTemplate}><FileSpreadsheet /> Download Staff CSV Template</button>
       <label className="secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: importing ? 'wait' : 'pointer', padding: '10px 14px', borderRadius: 10 }}>
         <Upload /> {importing ? 'Importing staff…' : 'Upload staff CSV'}
         <input type="file" accept=".csv,text/csv" disabled={!schoolId || importing} onChange={e => { void importStaffFile(e.target.files?.[0]); e.currentTarget.value = '' }} style={{ display: 'none' }} />
