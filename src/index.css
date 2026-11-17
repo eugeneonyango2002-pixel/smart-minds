@@ -831,3 +831,11 @@ tbody tr:hover{background:#f8fbff}
    z-index:99999!important;
  }
 }
+
+
+/* Explicit developer credit on learner report previews and printed documents. */
+.document-developer-footer{display:block!important;margin-top:10px!important;padding:7px 4px!important;border-top:1px solid #dce6f0!important;color:#526b84!important;text-align:center!important;font:600 8pt Arial,sans-serif!important;line-height:1.35!important}
+@media print{
+ .document-developer-footer{display:block!important;visibility:visible!important;position:static!important;margin-top:auto!important;padding:5px 2px!important;font-size:6.5pt!important;}
+ #learner-report-card{display:block!important;}
+}
