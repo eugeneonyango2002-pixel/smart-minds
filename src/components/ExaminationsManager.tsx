@@ -83,6 +83,15 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
     setBusy(false)
   }
 
+  async function deleteMark(result: Result) {
+    if (!schoolId || !selectedExam || !window.confirm('Permanently delete this learner mark for ' + (subjects.find(x => x.id === result.subject_id)?.name || 'this subject') + '? This cannot be undone.')) return
+    setBusy(true); setError(''); setNotice('')
+    const { error } = await supabase.rpc('delete_school_record', { p_school_id: schoolId, p_entity: 'exam_result', p_record_id: result.id })
+    if (error) setError(error.message)
+    else { setNotice('Learner mark deleted successfully.'); await loadResults(selectedExam.id) }
+    setBusy(false)
+  }
+
   async function loadExams() {
     const { data, error } = await supabase.from('examinations').select('*').eq('school_id',schoolId).order('created_at',{ascending:false})
     if (error) setError(error.message)
@@ -208,7 +217,7 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
           <button className="primary wide" disabled={busy || !examStudents.length || !examSubjects.length}>{busy ? 'Saving…' : existingMark ? 'Update mark' : 'Save mark'}</button>
         </form>
         <h3>Marks recorded ({results.length})</h3>
-        {results.length === 0 ? <p className="muted">No marks have been entered for this examination.</p> : <div className="table-wrap"><table><thead><tr><th>Learner</th><th>Subject</th><th>Score</th><th>CBC achievement level</th><th>Remarks</th></tr></thead><tbody>{results.map(r => { const s = students.find(x => x.id === r.student_id); const sub = subjects.find(x => x.id === r.subject_id); return <tr key={r.id}><td>{s ? fullName(s) : 'Learner'}</td><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td></tr> })}</tbody></table></div>}
+        {results.length === 0 ? <p className="muted">No marks have been entered for this examination.</p> : <div className="table-wrap"><table><thead><tr><th>Learner</th><th>Subject</th><th>Score</th><th>CBC achievement level</th><th>Remarks</th>{canDelete && <th>Action</th>}</tr></thead><tbody>{results.map(r => { const s = students.find(x => x.id === r.student_id); const sub = subjects.find(x => x.id === r.subject_id); return <tr key={r.id}><td>{s ? fullName(s) : 'Learner'}</td><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td>{canDelete && <td><button className="secondary" disabled={busy} onClick={() => void deleteMark(r)}><Trash2 /> Delete</button></td>}</tr> })}</tbody></table></div>}
       </>}
     </>}
     {tab === 'reports' && <>
