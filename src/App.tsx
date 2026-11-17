@@ -896,7 +896,7 @@ export default function App() {
           <button className="secondary" onClick={() => setPage('apply')}>Register a school <ArrowRight /></button>
         </section>}
       </div>}
-      <footer>© {new Date().getFullYear()} Smart Minds <span>One platform. Many possibilities.</span></footer>
+      <footer className="app-footer"><span>© {new Date().getFullYear()} Smart Minds · One platform. Many possibilities.</span><span className="developer-credit">Powered by Smart Minds · Developed by <b>Eugene Media Graphix</b> · <a href="tel:0757783275">0757783275</a> · <a href="mailto:eugeneaswani6@gmail.com">eugeneaswani6@gmail.com</a></span></footer>
     </main>
   </div>
 }
