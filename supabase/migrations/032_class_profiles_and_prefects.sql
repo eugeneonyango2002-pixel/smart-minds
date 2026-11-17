@@ -15,9 +15,9 @@ create table if not exists public.class_profiles (
   constraint class_profile_class_same_school_fk foreign key (school_id, class_id)
     references public.classes(school_id, id) on delete cascade,
   constraint class_profile_teacher_same_school_fk foreign key (school_id, class_teacher_id)
-    references public.staff(school_id, id) on delete set null,
+    references public.staff(school_id, id),
   constraint class_profile_boy_prefect_same_school_fk foreign key (school_id, boy_prefect_id)
-    references public.students(school_id, id) on delete set null,
+    references public.students(school_id, id),
   constraint class_profile_girl_prefect_same_school_fk foreign key (school_id, girl_prefect_id)
     references public.students(school_id, id) on delete set null,
   constraint class_profile_distinct_prefects check (
