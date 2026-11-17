@@ -138,6 +138,9 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
   const total = reportResults.reduce((sum,r) => sum + Number(r.score),0)
   const possible = reportResults.length * Number(selectedExam?.max_score || 0)
   const average = possible ? total / possible * 100 : 0
+  const reportClassResults = results.filter(r => examStudents.some(s => s.id === r.student_id))
+  const reportClassPossible = reportClassResults.length * Number(selectedExam?.max_score || 0)
+  const reportClassAverage = reportClassPossible ? reportClassResults.reduce((sum,r) => sum + Number(r.score),0) / reportClassPossible * 100 : 0
   const student = students.find(s => s.id === selectedStudentId)
   const selectedSchool = schools.find(s => s.id === schoolId)
 
@@ -256,6 +259,12 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
         <h3>{selectedExam.name}</h3>
         <div className="table-wrap"><table><thead><tr><th>Learning area</th><th>Score</th><th>Percentage</th><th>CBC achievement level</th><th>Teacher remarks</th></tr></thead><tbody>{reportResults.map(r => { const sub = subjects.find(x => x.id === r.subject_id); const pct = Number(r.score) / Number(selectedExam.max_score) * 100; return <tr key={r.id}><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{pct.toFixed(1)}%</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td></tr> })}</tbody></table></div>
         <div className="stats"><article className="panel"><span>Total score</span><b>{total.toFixed(1)}</b></article><article className="panel"><span>Average</span><b>{average.toFixed(1)}%</b></article><article className="panel"><span>Overall CBC level</span><b>{reportResults.length ? grade(average,100) : '—'}</b></article></div>
+        <section className="report-performance-graph" aria-label="Learner performance compared with class average">
+          <b>PERFORMANCE COMPARISON</b>
+          <div className="report-performance-row"><span>Learner</span><div className="report-performance-track"><i style={{width: average + '%'}} /></div><strong>{average.toFixed(1)}%</strong></div>
+          <div className="report-performance-row"><span>Class average</span><div className="report-performance-track class"><i style={{width: reportClassAverage + '%'}} /></div><strong>{reportClassAverage.toFixed(1)}%</strong></div>
+        </section>
+        <footer className="document-developer-footer">Powered by Smart Minds · Developed by Eugene Media Graphix · 0757783275 · eugeneaswani6@gmail.com</footer>
         {reportResults.length === 0 && <p className="muted">No subject marks have been recorded for this learner yet.</p>}
       </div>}
     </>}
