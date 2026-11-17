@@ -66,21 +66,41 @@ Deno.serve(async (request) => {
     }, 400);
   }
 
+  // Resolve an existing login before attempting to create one. This avoids
+  // duplicate-email errors and only reuses the currently signed-in account.
   let parentAuthUserId = authData.user.id;
+  let reusedExistingLogin = email === String(authData.user.email || "").trim().toLowerCase();
   let createdNewAuthUser = false;
-  if (!isUsingOwnAccount) {
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email, password, email_confirm: true, user_metadata: { full_name: name, account_type: "parent" },
-    });
-    if (createError || !created.user) return reply({ error: createError?.message || "Unable to create login." }, 400);
-    parentAuthUserId = created.user.id;
-    createdNewAuthUser = true;
+
+  if (!reusedExistingLogin) {
+    let matchingUser: { id: string; email?: string } | null = null;
+    for (let page = 1; page <= 20; page++) {
+      const { data: usersPage, error: listError } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (listError) return reply({ error: "Unable to check existing login: " + listError.message }, 500);
+      matchingUser = usersPage.users.find((user) => String(user.email || "").trim().toLowerCase() === email) || null;
+      if (matchingUser || usersPage.users.length < 1000) break;
+    }
+
+    if (matchingUser) {
+      if (matchingUser.id !== authData.user.id) {
+        return reply({ error: "This email already belongs to a different login. Sign in with that account to link it as a parent, or use another email for a separate parent account." }, 409);
+      }
+      reusedExistingLogin = true;
+      parentAuthUserId = matchingUser.id;
+    } else {
+      const { data: created, error: createError } = await admin.auth.admin.createUser({
+        email, password, email_confirm: true, user_metadata: { full_name: name, account_type: "parent" },
+      });
+      if (createError || !created.user) return reply({ error: createError?.message || "Unable to create login." }, 400);
+      parentAuthUserId = created.user.id;
+      createdNewAuthUser = true;
+    }
   }
 
-  const { data: account, error: accountError } = await admin.from("parent_accounts").insert({
+  const { data: account, error: accountError } = await admin.from("parent_accounts").upsert({
     school_id: schoolId, auth_user_id: parentAuthUserId, parent_name: name, email, phone,
     status: "active", created_by: authData.user.id,
-  }).select("id").single();
+  }, { onConflict: "school_id,auth_user_id" }).select("id").single();
   if (accountError || !account) {
     if (createdNewAuthUser) await admin.auth.admin.deleteUser(parentAuthUserId);
     return reply({ error: accountError?.message || "Unable to save parent account." }, 400);
@@ -90,12 +110,18 @@ Deno.serve(async (request) => {
     school_id: schoolId, parent_account_id: account.id, student_id,
     relationship: String(input.relationship || "Parent"),
   }));
-  const { error: linksError } = await admin.from("parent_students").insert(links);
+  const { error: linksError } = await admin.from("parent_students").upsert(links, {
+    onConflict: "parent_account_id,student_id",
+    ignoreDuplicates: true,
+  });
   if (linksError) {
-    await admin.from("parent_accounts").delete().eq("id", account.id);
     if (createdNewAuthUser) await admin.auth.admin.deleteUser(parentAuthUserId);
     return reply({ error: linksError.message }, 400);
   }
 
-  return reply({ success: true, message: isUsingOwnAccount ? "Parent access linked to your existing Super Admin login." : "Parent account created.", reused_existing_login: isUsingOwnAccount });
+  return reply({
+    success: true,
+    message: reusedExistingLogin ? "Parent access linked to your existing login." : "Parent account created.",
+    reused_existing_login: reusedExistingLogin,
+  });
 });
