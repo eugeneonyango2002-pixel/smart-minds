@@ -248,6 +248,22 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
               <div className="report-performance-row"><span>Learner</span><div className="report-performance-track"><i style={{width: learnerAverage + '%'}} /></div><strong>{learnerAverage.toFixed(1)}%</strong></div>
               <div className="report-performance-row"><span>Class average</span><div className="report-performance-track class"><i style={{width: classAverage + '%'}} /></div><strong>{classAverage.toFixed(1)}%</strong></div>
             </section>
+            <section className="report-subject-comparison" aria-label="Subject-by-subject learner and class performance">
+              <b>SUBJECT PERFORMANCE · LEARNER VS CLASS AVERAGE</b>
+              {learnerResults.map(r => {
+                const subject = subjects.find(s => s.id === r.subject_id)
+                const learnerPct = Number(selectedExam.max_score) > 0 ? Number(r.score) / Number(selectedExam.max_score) * 100 : 0
+                const subjectClassResults = results.filter(cr => cr.subject_id === r.subject_id && examStudents.some(es => es.id === cr.student_id))
+                const subjectClassAverage = subjectClassResults.length ? subjectClassResults.reduce((sum, cr) => sum + Number(cr.score) / Number(selectedExam.max_score) * 100, 0) / subjectClassResults.length : 0
+                return <div className="report-subject-row" key={r.id}>
+                  <span className="report-subject-name">{subject?.name || 'Learning area'}</span>
+                  <div className="report-subject-bars">
+                    <div className="report-performance-row"><span>Learner</span><div className="report-performance-track"><i style={{width: learnerPct + '%'}} /></div><strong>{learnerPct.toFixed(1)}%</strong></div>
+                    <div className="report-performance-row"><span>Class avg.</span><div className="report-performance-track class"><i style={{width: subjectClassAverage + '%'}} /></div><strong>{subjectClassAverage.toFixed(1)}%</strong></div>
+                  </div>
+                </div>
+              })}
+            </section>
             {learnerResults.length === 0 && <p className="bulk-report-empty">No subject marks have been recorded for this learner.</p>}
             <div className="bulk-report-signatures"><span>Class teacher's signature: ____________________</span><span>Headteacher's signature: ____________________</span><span>Parent/Guardian: ____________________</span></div>
             <footer>{selectedSchool?.name || 'School'} · Learner Progress Report</footer>
@@ -263,6 +279,22 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
           <b>PERFORMANCE COMPARISON</b>
           <div className="report-performance-row"><span>Learner</span><div className="report-performance-track"><i style={{width: average + '%'}} /></div><strong>{average.toFixed(1)}%</strong></div>
           <div className="report-performance-row"><span>Class average</span><div className="report-performance-track class"><i style={{width: reportClassAverage + '%'}} /></div><strong>{reportClassAverage.toFixed(1)}%</strong></div>
+        </section>
+        <section className="report-subject-comparison" aria-label="Subject-by-subject learner and class performance">
+          <b>SUBJECT PERFORMANCE · LEARNER VS CLASS AVERAGE</b>
+          {reportResults.map(r => {
+            const subject = subjects.find(s => s.id === r.subject_id)
+            const learnerPct = Number(selectedExam.max_score) > 0 ? Number(r.score) / Number(selectedExam.max_score) * 100 : 0
+            const subjectClassResults = results.filter(cr => cr.subject_id === r.subject_id && examStudents.some(es => es.id === cr.student_id))
+            const subjectClassAverage = subjectClassResults.length ? subjectClassResults.reduce((sum, cr) => sum + Number(cr.score) / Number(selectedExam.max_score) * 100, 0) / subjectClassResults.length : 0
+            return <div className="report-subject-row" key={r.id}>
+              <span className="report-subject-name">{subject?.name || 'Learning area'}</span>
+              <div className="report-subject-bars">
+                <div className="report-performance-row"><span>Learner</span><div className="report-performance-track"><i style={{width: learnerPct + '%'}} /></div><strong>{learnerPct.toFixed(1)}%</strong></div>
+                <div className="report-performance-row"><span>Class avg.</span><div className="report-performance-track class"><i style={{width: subjectClassAverage + '%'}} /></div><strong>{subjectClassAverage.toFixed(1)}%</strong></div>
+              </div>
+            </div>
+          })}
         </section>
         <footer className="document-developer-footer">Powered by Smart Minds · Developed by Eugene Media Graphix · 0757783275 · eugeneaswani6@gmail.com</footer>
         {reportResults.length === 0 && <p className="muted">No subject marks have been recorded for this learner yet.</p>}
