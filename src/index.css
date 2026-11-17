@@ -280,3 +280,96 @@ footer span{display:none}
   .parent-fee-totals{grid-template-columns:1fr}
   .parent-portal .panel:hover{transform:none}
 }
+
+
+/* Smart Minds shared design system: used by every role and workspace. */
+:root{
+  --sm-primary:#155aa2;
+  --sm-primary-dark:#0e4784;
+  --sm-navy:#102f56;
+  --sm-page:#f5f7fb;
+  --sm-text:#1b2a40;
+  --sm-muted:#8290a2;
+  --sm-border:#e7edf4;
+  --sm-surface:#ffffff;
+  --sm-radius:12px;
+  --sm-shadow:0 3px 12px #183b640a;
+}
+body{background:var(--sm-page);color:var(--sm-text)}
+.primary{background:var(--sm-primary)}
+.primary:hover{background:var(--sm-primary-dark)}
+.panel{background:var(--sm-surface);border-color:var(--sm-border);border-radius:var(--sm-radius);box-shadow:var(--sm-shadow)}
+.sidebar{background:var(--sm-navy)}
+.nav.active,.nav:hover{background:#ffffff18;color:#fff}
+
+/* Parent Portal uses the same brand, surfaces, controls and typography as staff/admin. */
+.parent-portal{min-height:100vh;background:var(--sm-page);color:var(--sm-text)}
+.parent-portal-header{
+  min-height:78px;padding:12px max(18px,calc((100% - 1100px)/2));
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--sm-navy);color:#fff;box-shadow:none;
+}
+.parent-portal-header:after{display:none}
+.parent-logo{width:40px;height:40px;border:0;border-radius:12px;background:#ffffff20;box-shadow:none}
+.parent-brand b{letter-spacing:1px}
+.parent-portal-header .secondary{background:#ffffff18;border:1px solid #ffffff35;color:#fff;border-radius:9px;backdrop-filter:none}
+.parent-portal-header .secondary:hover{background:#ffffff28;transform:none}
+.parent-portal-main{max-width:1100px;padding:30px 20px}
+.parent-welcome{
+  min-height:0;padding:0;margin:0 0 22px;border-radius:0;overflow:visible;
+  color:var(--sm-text);background:transparent;box-shadow:none;
+}
+.parent-welcome:after{display:none}
+.parent-welcome>div{position:static}
+.parent-welcome .kicker{color:#6684a9;letter-spacing:1.7px}
+.parent-welcome h1{color:var(--sm-text);font:800 27px Manrope;margin:0 0 6px;letter-spacing:0}
+.parent-welcome .muted{color:var(--sm-muted);font-size:13px;margin:0}
+.parent-portal .panel{border:1px solid var(--sm-border);border-radius:var(--sm-radius);background:var(--sm-surface);box-shadow:var(--sm-shadow);transition:none}
+.parent-portal .panel:hover{border-color:var(--sm-border);box-shadow:var(--sm-shadow)}
+.parent-child-picker{color:#34445a}
+.parent-child-picker select{border:1px solid #dce4ee;border-radius:9px;box-shadow:none;background:#fff;color:var(--sm-text)}
+.parent-stats{gap:13px;margin:18px 0}
+.parent-stats .panel{min-height:0;padding:22px;border-radius:var(--sm-radius)}
+.parent-stats .panel:after{display:none}
+.parent-stats svg,.parent-stats .panel:nth-child(2) svg,.parent-stats .panel:nth-child(3) svg{color:#3678b7}
+.parent-stats span{font-size:11px;color:var(--sm-muted)}
+.parent-stats b{font:800 21px Manrope;color:#183b64;letter-spacing:0}
+.parent-section{padding:22px;margin:16px 0}
+.parent-section .panel-heading{padding:0;margin-bottom:17px;border:0}
+.parent-section .panel-heading h2{font-size:17px;color:var(--sm-text)}
+.parent-section .panel-heading h2 svg{color:#3678b7}
+.parent-section .panel-heading>span{padding:0;background:transparent;color:var(--sm-muted);font-size:11px;font-weight:400}
+.parent-announcement{border:1px solid var(--sm-border);border-left:3px solid var(--sm-primary);border-radius:10px;background:#fff;padding:15px}
+.parent-announcement h3{font:700 15px Manrope;color:#25374e}
+.parent-announcement p{font-size:13px;line-height:1.6}
+.parent-portal .table-wrap{border:0;border-radius:0}
+.parent-portal table{min-width:620px}
+.parent-portal th{background:#f8fafd;color:var(--sm-muted);font-size:10px;padding:12px}
+.parent-portal td{font-size:11px;padding:14px 12px;color:#56677d}
+.parent-portal tbody tr:last-child td{border-bottom:0}
+.parent-portal tbody tr:hover{background:transparent}
+.parent-fee-totals>div{border:1px solid var(--sm-border);border-radius:10px;background:#f5f8fc;padding:13px}
+.parent-fee-totals>div:last-child{background:#f5f8fc;border-color:var(--sm-border)}
+.parent-fee-totals b{font:800 17px Manrope;color:#183b64}
+.parent-portal-main>footer{justify-content:center;color:#9aa5b3;font-size:10px;padding:18px 0;border-color:#e6ebf2}
+@media(max-width:680px){
+  .parent-portal-header{min-height:72px;padding:12px;gap:7px}
+  .parent-brand{gap:8px;min-width:0}
+  .parent-brand b{font-size:11px}
+  .parent-brand small{font-size:9px}
+  .parent-logo{width:36px;height:36px;flex-shrink:0}
+  .parent-portal-header .secondary{font-size:10px;padding:8px 9px;white-space:nowrap}
+  .parent-portal-main{padding:20px 12px}
+  .parent-welcome{min-height:0;padding:0;margin-bottom:18px}
+  .parent-welcome h1{font-size:22px;overflow-wrap:anywhere}
+  .parent-welcome .muted{font-size:12px}
+  .parent-stats{grid-template-columns:1fr 1fr;gap:8px}
+  .parent-stats .panel{min-height:0;padding:13px;gap:8px}
+  .parent-stats .panel:last-child{grid-column:auto}
+  .parent-stats b{font-size:19px;overflow-wrap:anywhere}
+  .parent-section{padding:15px;margin:12px 0}
+  .parent-section .panel-heading{align-items:flex-start;gap:8px}
+  .parent-section .panel-heading h2{font-size:15px}
+  .parent-section .panel-heading>span{white-space:nowrap}
+  .parent-fee-totals{grid-template-columns:1fr}
+}
