@@ -880,3 +880,47 @@ tbody tr:hover{background:#f8fbff}
  .report-subject-chart-label{font-size:5pt;min-height:18px}
  .report-subject-chart-values{font-size:5pt;gap:4px}
 }
+
+
+/* Dedicated one-page A4 printing for a single learner report card. */
+@media print{
+  @page{size:A4 portrait;margin:5mm}
+  body.printing-single-report{background:#fff!important}
+  body.printing-single-report *{visibility:hidden!important}
+  body.printing-single-report #learner-report-card,
+  body.printing-single-report #learner-report-card *{visibility:visible!important}
+  body.printing-single-report #learner-report-card{
+    display:block!important;position:absolute!important;left:0!important;top:0!important;
+    width:200mm!important;height:287mm!important;max-height:287mm!important;
+    box-sizing:border-box!important;overflow:hidden!important;margin:0!important;padding:5mm!important;
+    border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;
+    color:#172f4b!important;font-family:Arial,sans-serif!important;font-size:7pt!important;line-height:1.12!important;
+    break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important;
+  }
+  body.printing-single-report:after{display:none!important;content:none!important}
+  body.printing-single-report #learner-report-card .panel-heading{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:5mm!important;margin:0 0 3mm!important;padding:0 0 2mm!important}
+  body.printing-single-report #learner-report-card .panel-heading h2{font-size:13pt!important;margin:0!important}
+  body.printing-single-report #learner-report-card .panel-heading .kicker{font-size:6pt!important;margin:0 0 1mm!important}
+  body.printing-single-report #learner-report-card .panel-heading .muted{font-size:6.5pt!important;margin:1mm 0!important}
+  body.printing-single-report #learner-report-card .panel-heading button{display:none!important}
+  body.printing-single-report #learner-report-card>h3{font-size:9pt!important;margin:2mm 0!important}
+  body.printing-single-report #learner-report-card .table-wrap{overflow:visible!important;margin:0!important}
+  body.printing-single-report #learner-report-card table{width:100%!important;border-collapse:collapse!important;table-layout:fixed!important;font-size:6.2pt!important}
+  body.printing-single-report #learner-report-card th,
+  body.printing-single-report #learner-report-card td{padding:1.4mm 1mm!important;line-height:1.08!important;white-space:normal!important;overflow-wrap:anywhere!important;vertical-align:top!important}
+  body.printing-single-report #learner-report-card .stats{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:2mm!important;margin:2mm 0!important}
+  body.printing-single-report #learner-report-card .stats .panel{min-height:0!important;padding:2mm!important;margin:0!important;gap:1mm!important;border-radius:2mm!important;box-shadow:none!important}
+  body.printing-single-report #learner-report-card .stats .panel span{font-size:6pt!important}
+  body.printing-single-report #learner-report-card .stats .panel b{font-size:11pt!important}
+  body.printing-single-report #learner-report-card .report-performance-graph{margin:2mm 0!important;padding:2mm 3mm!important}
+  body.printing-single-report #learner-report-card .report-performance-graph>b{font-size:6pt!important;margin-bottom:1mm!important}
+  body.printing-single-report #learner-report-card .report-performance-row{grid-template-columns:18mm 1fr 12mm!important;gap:1.5mm!important;margin:1mm 0!important;font-size:5.8pt!important}
+  body.printing-single-report #learner-report-card .report-performance-track{height:1.5mm!important}
+  body.printing-single-report #learner-report-card .report-subject-comparison{margin:2mm 0!important;padding:2mm 3mm!important}
+  body.printing-single-report #learner-report-card .report-subject-legend{margin:0 0 1mm!important;font-size:5.5pt!important}
+  body.printing-single-report #learner-report-card .report-subject-chart{gap:1mm!important}
+  body.printing-single-report #learner-report-card .report-subject-chart-bars{height:10mm!important}
+  body.printing-single-report #learner-report-card .report-subject-chart-label{font-size:4.8pt!important;min-height:0!important}
+  body.printing-single-report #learner-report-card .report-subject-chart-values{font-size:5pt!important;gap:1mm!important}
+  body.printing-single-report #learner-report-card .document-developer-footer{margin-top:2mm!important;padding:1.5mm!important;font-size:5.5pt!important}
+}
