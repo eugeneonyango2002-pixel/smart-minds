@@ -33,9 +33,11 @@ Deno.serve(async (request) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({ error: "Enter a valid parent email address." }, 400);
   if (!/^\+[1-9]\d{7,14}$/.test(phone)) return reply({ error: "Use international phone format, e.g. +2547XXXXXXXX." }, 400);
 
+  const { data: platformAdmin, error: platformAdminError } = await caller.rpc("is_platform_admin");
   const { data: staff } = await caller.from("staff_login_accounts").select("role")
     .eq("auth_user_id", authData.user.id).eq("school_id", schoolId).eq("status", "active").maybeSingle();
-  if (!staff || !["school_admin", "head_teacher", "secretary"].includes(staff.role)) {
+  const isAuthorisedStaff = Boolean(staff && ["school_admin", "head_teacher", "secretary"].includes(staff.role));
+  if (platformAdminError || (!Boolean(platformAdmin) && !isAuthorisedStaff)) {
     return reply({ error: "You are not authorised to create parent accounts." }, 403);
   }
 
