@@ -115,7 +115,7 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
         </section>
         <section className="panel parent-section"><div className="panel-heading"><h2><Wallet/> Fee payments</h2><span>Recorded payments</span></div>{learnerPayments.length ? <div className="table-wrap"><table><thead><tr><th>Payment date</th><th>Amount</th><th>Reference</th></tr></thead><tbody>{learnerPayments.map(x=><tr key={x.id}><td>{new Date(x.payment_date+'T00:00:00').toLocaleDateString()}</td><td>KES {Number(x.amount_kes).toLocaleString()}</td><td>{x.transaction_reference||'—'}</td></tr>)}</tbody></table></div>:<p className="muted">No fee payments are recorded yet.</p>}</section>
       </>}
-      <footer>© {new Date().getFullYear()} Smart Minds · Parent access is read-only.</footer>
+      <footer className="app-footer"><span>© {new Date().getFullYear()} Smart Minds · Parent access is read-only.</span><span className="developer-credit">Powered by Smart Minds · Developed by <b>Eugene Media Graphix</b> · <a href="tel:0757783275">0757783275</a> · <a href="mailto:eugeneaswani6@gmail.com">eugeneaswani6@gmail.com</a></span></footer>
     </main>
   </div>
 }
