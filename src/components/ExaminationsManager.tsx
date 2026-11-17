@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { BookOpen, ClipboardList, Download, Plus, Printer, RefreshCw, Save, XCircle, CheckCircle2 } from 'lucide-react'
+import { BookOpen, ClipboardList, Download, Plus, Printer, RefreshCw, Save, XCircle, CheckCircle2, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type School = { id: string; name: string; motto?: string | null; logo_url?: string | null; registration_number?: string | null; address?: string | null; county?: string | null; sub_county?: string | null; contact_phone?: string | null; contact_email?: string | null }
@@ -26,7 +26,7 @@ function autoRemark(score: number, max: number) {
 }
 const fullName = (s: Learner) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(' ')
 
-export default function ExaminationsManager({ schools }: { schools: School[] }) {
+export default function ExaminationsManager({ schools, canDelete = false }: { schools: School[]; canDelete?: boolean }) {
   const [schoolId, setSchoolId] = useState('')
   const [years, setYears] = useState<Row[]>([])
   const [terms, setTerms] = useState<Row[]>([])
@@ -68,6 +68,19 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
     setYears(y.data || []); setTerms(t.data || []); setClasses(c.data || [])
     setSubjects(s.data || []); setClassSubjectLinks(cs.data || []); setStudents((st.data || []) as Learner[])
     if (!form.academic_year_id && y.data?.[0]) setForm(v => ({ ...v, academic_year_id: y.data![0].id }))
+  }
+
+  async function deleteExamination(exam: Exam) {
+    if (!schoolId || !window.confirm('Permanently delete "' + exam.name + '" and all marks/results recorded under it? This cannot be undone.')) return
+    setBusy(true); setError(''); setNotice('')
+    const { error } = await supabase.rpc('delete_school_record', { p_school_id: schoolId, p_entity: 'examination', p_record_id: exam.id })
+    if (error) setError(error.message)
+    else {
+      setNotice('Examination and its marks/results deleted.')
+      if (selectedExamId === exam.id) setSelectedExamId('')
+      await loadExams()
+    }
+    setBusy(false)
   }
 
   async function loadExams() {
@@ -181,7 +194,7 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
         <button className="primary wide" disabled={busy || !schoolId || !years.length || !classes.length}>{busy ? 'Saving…' : 'Create examination'}</button>
       </form>
       <h3>Examinations created</h3>
-      {exams.length === 0 ? <div className="empty"><ClipboardList/><h3>No examinations yet</h3><p>Create the first examination above.</p></div> : <div className="table-wrap"><table><thead><tr><th>Examination</th><th>Year / term</th><th>Class</th><th>Date</th><th>Maximum</th><th>Marks entered</th><th>Action</th></tr></thead><tbody>{exams.map(ex => <tr key={ex.id}><td><b>{ex.name}</b></td><td>{years.find(y => y.id === ex.academic_year_id)?.name || '—'} / {terms.find(t => t.id === ex.term_id)?.name || '—'}</td><td>{classes.find(c => c.id === ex.class_id)?.name || '—'}</td><td>{ex.exam_date || '—'}</td><td>{ex.max_score}</td><td>{results.length && ex.id === selectedExamId ? results.length : '—'}</td><td><button className="secondary" onClick={() => { setSelectedExamId(ex.id); setTab('marks') }}>Open</button></td></tr>)}</tbody></table></div>}
+      {exams.length === 0 ? <div className="empty"><ClipboardList/><h3>No examinations yet</h3><p>Create the first examination above.</p></div> : <div className="table-wrap"><table><thead><tr><th>Examination</th><th>Year / term</th><th>Class</th><th>Date</th><th>Maximum</th><th>Marks entered</th><th>Action</th></tr></thead><tbody>{exams.map(ex => <tr key={ex.id}><td><b>{ex.name}</b></td><td>{years.find(y => y.id === ex.academic_year_id)?.name || '—'} / {terms.find(t => t.id === ex.term_id)?.name || '—'}</td><td>{classes.find(c => c.id === ex.class_id)?.name || '—'}</td><td>{ex.exam_date || '—'}</td><td>{ex.max_score}</td><td>{results.length && ex.id === selectedExamId ? results.length : '—'}</td><td><div className="actions"><button className="secondary" onClick={() => { setSelectedExamId(ex.id); setTab('marks') }}>Open</button>{canDelete && <button className="secondary" disabled={busy} onClick={() => void deleteExamination(ex)}><Trash2 /> Delete</button>}</div></td></tr>)}</tbody></table></div>}
     </>}
     {tab === 'marks' && <>
       <label className="school-picker">Select examination<select value={selectedExamId} onChange={e => setSelectedExamId(e.target.value)}><option value="">Select examination</option>{exams.map(ex => <option key={ex.id} value={ex.id}>{ex.name} · {classes.find(c => c.id === ex.class_id)?.name || ''}</option>)}</select></label>
