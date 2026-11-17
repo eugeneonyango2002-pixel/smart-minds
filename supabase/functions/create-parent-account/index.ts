@@ -38,10 +38,16 @@ Deno.serve(async (request) => {
   }
 
   const admin = createClient(url, service);
-  const { data: learners, error: learnersError } = await admin.from("students").select("id")
-    .eq("school_id", schoolId).in("id", studentIds);
-  if (learnersError || !learners || learners.length !== studentIds.length) {
-    return reply({ error: "Check that all selected learners belong to this school." }, 400);
+  const { data: learners, error: learnersError } = await admin.from("students").select("id,school_id")
+    .in("id", studentIds);
+  if (learnersError) {
+    return reply({ error: "Unable to verify selected learners: " + learnersError.message }, 400);
+  }
+  const validLearners = (learners || []).filter((learner) => learner.school_id === schoolId);
+  if (validLearners.length !== studentIds.length) {
+    return reply({
+      error: "Learner verification mismatch: " + validLearners.length + " of " + studentIds.length + " selected learners match the selected school. Please refresh the learner list and try again.",
+    }, 400);
   }
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
