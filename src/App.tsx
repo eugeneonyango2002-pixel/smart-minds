@@ -429,7 +429,7 @@ export default function App() {
   const [email, setEmail] = useState('')
   const [loginType, setLoginType] = useState<'staff' | 'parent'>('staff')
   const [parentEmail, setParentEmail] = useState('')
-  const [parentAccount, setParentAccount] = useState<{ id: string; school_id: string; parent_name: string; phone: string } | null>(null)
+  const [parentAccount, setParentAccount] = useState<{ id: string; school_id: string; parent_name: string; phone: string; email?: string | null } | null>(null)
   const [checkingAccount, setCheckingAccount] = useState(false)
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
