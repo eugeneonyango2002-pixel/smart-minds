@@ -37,8 +37,13 @@ Deno.serve(async (request) => {
   const { data: staff } = await caller.from("staff_login_accounts").select("role")
     .eq("auth_user_id", authData.user.id).eq("school_id", schoolId).eq("status", "active").maybeSingle();
   const isAuthorisedStaff = Boolean(staff && ["school_admin", "head_teacher", "secretary"].includes(staff.role));
-  if (platformAdminError || (!Boolean(platformAdmin) && !isAuthorisedStaff)) {
-    return reply({ error: "You are not authorised to create parent accounts." }, 403);
+  if (platformAdminError) {
+    return reply({ error: "Unable to verify platform administrator permissions: " + platformAdminError.message }, 403);
+  }
+  if (!Boolean(platformAdmin) && !isAuthorisedStaff) {
+    return reply({
+      error: "Permission check did not recognise this account. Platform administrator: " + String(Boolean(platformAdmin)) + "; school staff role: " + String(staff?.role || "not linked") + "."
+    }, 403);
   }
 
   const admin = createClient(url, service);
