@@ -13,6 +13,7 @@ import FeeReports from './components/FeeReports'
 import StaffManager from './components/StaffManager'
 import StaffAttendanceManager from './components/StaffAttendanceManager'
 import ParentManager from './components/ParentManager'
+import ParentPortal from './components/ParentPortal'
 
 const SUB_COUNTIES_BY_COUNTY: Record<string, string[]> = {
   "Uasin Gishu": [
@@ -425,6 +426,10 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
+  const [loginType, setLoginType] = useState<'staff' | 'parent'>('staff')
+  const [parentPhone, setParentPhone] = useState('')
+  const [parentAccount, setParentAccount] = useState<{ id: string; school_id: string; parent_name: string; phone: string } | null>(null)
+  const [checkingAccount, setCheckingAccount] = useState(false)
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState('')
@@ -480,15 +485,29 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (session) void loadSchools()
-    else { setAdmin(false); setSchools([]) }
+    let cancelled = false
+    async function identifyAccount() {
+      setParentAccount(null)
+      setStaffAccount(null)
+      if (!session) { setAdmin(false); setSchools([]); return }
+      setCheckingAccount(true)
+      const { data: parent } = await supabase.from('parent_accounts')
+        .select('id, school_id, parent_name, phone')
+        .eq('auth_user_id', session.user.id).eq('status', 'active').maybeSingle()
+      if (cancelled) return
+      if (parent) { setParentAccount(parent); setCheckingAccount(false); return }
+      setCheckingAccount(false)
+      void loadSchools()
+    }
+    void identifyAccount()
+    return () => { cancelled = true }
   }, [session])
 
   useEffect(() => {
     let cancelled = false
     async function loadStaffAccount() {
       setStaffAccount(null)
-      if (!session) return
+      if (!session || parentAccount) return
       const { data, error } = await supabase
         .from('staff_login_accounts')
         .select('role, school_id, staff_id')
@@ -499,7 +518,7 @@ export default function App() {
     }
     void loadStaffAccount()
     return () => { cancelled = true }
-  }, [session])
+  }, [session, parentAccount])
 
   useEffect(() => {
     if (!admin && page !== 'dashboard' && page !== 'apply' && !canAccess(page)) setPage('dashboard')
@@ -527,7 +546,8 @@ export default function App() {
   async function authenticate(e: FormEvent) {
     e.preventDefault(); setError(''); setNotice('')
     if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const credentials = loginType === 'parent' ? { phone: parentPhone.trim(), password } : { email, password }
+      const { error } = await supabase.auth.signInWithPassword(credentials)
       if (error) setError(error.message)
     } else {
       const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } })
@@ -704,17 +724,21 @@ export default function App() {
   }
 
   if (!supabaseConfigured) return <main className="setup"><div className="panel setup-panel"><div className="logo"><GraduationCap /></div><p className="kicker">SMART MINDS · SETUP</p><h1>Connect your Supabase project</h1><p>Your application files are ready. The next step is to add your Supabase project URL and publishable (anon) key to GitHub Actions secrets.</p><div className="notice"><ShieldCheck /> Never put your Supabase service-role key in the frontend or GitHub source files.</div></div></main>
-  if (loading) return <main className="setup">Loading Smart Minds…</main>
+  if (loading || (session && checkingAccount)) return <main className="setup">Loading Smart Minds…</main>
+  if (session && parentAccount) return <ParentPortal account={parentAccount} onSignOut={() => void supabase.auth.signOut()} />
 
   if (!session) return <main className="auth">
     <section className="hero"><div className="brand"><span className="logo"><GraduationCap /></span> SMART MINDS</div><div><p className="kicker">ONE PLATFORM · MANY SCHOOLS</p><h1>Every school.<br /><em>One smarter</em> system.</h1><p>School administration, learning and communication together in one secure place.</p></div><small>Built for Kenya · Currency: KES</small></section>
     <section className="auth-side"><div className="auth-card"><div className="mobile-brand"><span className="logo"><GraduationCap /></span> SMART MINDS</div><p className="kicker">{mode === 'login' ? 'WELCOME BACK' : 'GET STARTED'}</p><h2>{mode === 'login' ? 'Sign in to your account' : 'Create your account'}</h2><p className="muted">Access your school workspace securely.</p>
+      {mode === 'login' && <div className="login-type-switch"><button type="button" className={loginType === 'staff' ? 'selected' : ''} onClick={() => { setLoginType('staff'); setError('') }}>Staff login</button><button type="button" className={loginType === 'parent' ? 'selected' : ''} onClick={() => { setLoginType('parent'); setError('') }}>Parent login</button></div>}
       <form onSubmit={authenticate} className="form">
         {mode === 'signup' && <label>Full name<input required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" /></label>}
-        <label>Email address<span className="input-icon"><Mail /><input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" /></span></label>
+        {loginType === 'staff' && <label>Email address<span className="input-icon"><Mail /><input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" /></span></label>}
+        {loginType === 'parent' && <label>Phone number<span className="input-icon"><Users /><input type="tel" required value={parentPhone} onChange={e => setParentPhone(e.target.value)} placeholder="+2547XXXXXXXX" /></span></label>}
         <label>Password<span className="input-icon"><Lock /><input type="password" minLength={8} required value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" /></span></label>
         <button className="primary" type="submit">{mode === 'login' ? 'Sign in' : 'Create account'} <ArrowRight /></button>
       </form>
+      {loginType === 'parent' && mode === 'login' && <p className="muted">Parent accounts are created by the school. Use the phone number and temporary password provided by the school.</p>}
       <p className="switch">{mode === 'login' ? "Don't have an account?" : 'Already registered?'} <button onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); setNotice('') }}>{mode === 'login' ? 'Create account' : 'Sign in'}</button></p>
       {error && <p className="alert error"><XCircle />{error}</p>}{notice && <p className="alert success"><CheckCircle2 />{notice}</p>}
     </div></section>
