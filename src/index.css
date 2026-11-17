@@ -839,3 +839,22 @@ tbody tr:hover{background:#f8fbff}
  .document-developer-footer{display:block!important;visibility:visible!important;position:static!important;margin-top:auto!important;padding:5px 2px!important;font-size:6.5pt!important;}
  #learner-report-card{display:block!important;}
 }
+
+
+/* Per-learning-area comparison: learner score against the class average for that same subject. */
+.report-subject-comparison{margin:5px 0 4px;padding:6px 8px;border:1px solid #dce6f0;border-radius:5px;background:#fff;color:#24496f;font-size:7pt}
+.report-subject-comparison>b{display:block;margin-bottom:4px;font-size:7pt;letter-spacing:.45px}
+.report-subject-row{display:grid;grid-template-columns:minmax(95px,23%) 1fr;gap:7px;align-items:center;padding:3px 0;border-top:1px solid #edf1f5}
+.report-subject-name{font-weight:700;font-size:6.5pt}
+.report-subject-bars .report-performance-row{grid-template-columns:48px 1fr 36px;gap:5px;margin:2px 0;font-size:6pt}
+.report-subject-bars .report-performance-row>strong{font-size:6pt}
+.report-subject-bars .report-performance-track{height:5px}
+@media print{
+ .report-subject-comparison{margin:3px 0 2px;padding:4px 6px;font-size:6pt}
+ .report-subject-comparison>b{margin-bottom:2px;font-size:6pt}
+ .report-subject-row{gap:5px;padding:2px 0}
+ .report-subject-name{font-size:5.8pt}
+ .report-subject-bars .report-performance-row{grid-template-columns:42px 1fr 32px;gap:4px;margin:1px 0;font-size:5.5pt}
+ .report-subject-bars .report-performance-row>strong{font-size:5.5pt}
+ .report-subject-bars .report-performance-track{height:4px}
+}
