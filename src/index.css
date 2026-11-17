@@ -858,3 +858,25 @@ tbody tr:hover{background:#f8fbff}
  .report-subject-bars .report-performance-row>strong{font-size:5.5pt}
  .report-subject-bars .report-performance-track{height:4px}
 }
+
+
+/* Grouped vertical bars for learner versus class performance by subject. */
+.report-subject-legend{display:flex;justify-content:center;gap:14px;margin:2px 0 5px;font-size:6pt;color:#526b84}
+.report-subject-legend span{display:inline-flex;align-items:center;gap:4px}
+.report-subject-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;background:#2379b8}
+.report-subject-legend i.class-key{background:#29936b}
+.report-subject-chart{display:grid;grid-template-columns:repeat(auto-fit,minmax(54px,1fr));gap:5px;align-items:end;padding:4px 2px 0;background:repeating-linear-gradient(to top,transparent 0,transparent 24%,#e9eff5 25%,transparent 26%)}
+.report-subject-chart-group{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.report-subject-chart-values{width:100%;display:flex;justify-content:center;gap:7px;margin-bottom:2px;font-size:5.8pt;color:#24496f}
+.report-subject-chart-values strong{font-weight:700}
+.report-subject-chart-bars{height:58px;width:100%;display:flex;justify-content:center;align-items:flex-end;gap:5px;border-bottom:1px solid #b8c7d6}
+.report-subject-column{height:100%;width:13px;display:flex;align-items:flex-end;background:#edf2f7;border-radius:3px 3px 0 0;overflow:hidden}
+.report-subject-column i{display:block;width:100%;min-height:0;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#49a0d2,#1767a4)}
+.report-subject-column i.class-bar{background:linear-gradient(180deg,#68b98c,#27815d)}
+.report-subject-chart-label{display:block;width:100%;min-height:22px;margin-top:3px;text-align:center;font-size:5.6pt;line-height:1.1;overflow-wrap:anywhere;color:#24496f}
+@media print{
+ .report-subject-chart{gap:3px}
+ .report-subject-chart-bars{height:46px}
+ .report-subject-chart-label{font-size:5pt;min-height:18px}
+ .report-subject-chart-values{font-size:5pt;gap:4px}
+}
