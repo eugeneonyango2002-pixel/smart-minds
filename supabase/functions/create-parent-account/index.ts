@@ -38,15 +38,21 @@ Deno.serve(async (request) => {
   }
 
   const admin = createClient(url, service);
-  const { data: learners, error: learnersError } = await admin.from("students").select("id,school_id")
+  const { data: learners, error: learnersError } = await caller
+    .from("students")
+    .select("id")
+    .eq("school_id", schoolId)
     .in("id", studentIds);
+
   if (learnersError) {
-    return reply({ error: "Unable to verify selected learners: " + learnersError.message }, 400);
-  }
-  const validLearners = (learners || []).filter((learner) => learner.school_id === schoolId);
-  if (validLearners.length !== studentIds.length) {
     return reply({
-      error: "Learner verification mismatch: " + validLearners.length + " of " + studentIds.length + " selected learners match the selected school. Please refresh the learner list and try again.",
+      error: "Unable to verify selected learners with your staff access: " + learnersError.message,
+    }, 400);
+  }
+
+  if (!learners || learners.length !== studentIds.length) {
+    return reply({
+      error: "One or more selected learners could not be verified in this school. Refresh the learner list and select them again.",
     }, 400);
   }
 
