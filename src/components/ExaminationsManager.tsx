@@ -249,21 +249,25 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
               <div className="report-performance-row"><span>Class average</span><div className="report-performance-track class"><i style={{width: classAverage + '%'}} /></div><strong>{classAverage.toFixed(1)}%</strong></div>
             </section>
             <section className="report-subject-comparison" aria-label="Subject-by-subject learner and class performance">
-              <b>SUBJECT PERFORMANCE · LEARNER VS CLASS AVERAGE</b>
-              {learnerResults.map(r => {
-                const subject = subjects.find(s => s.id === r.subject_id)
-                const learnerPct = Number(selectedExam.max_score) > 0 ? Number(r.score) / Number(selectedExam.max_score) * 100 : 0
-                const subjectClassResults = results.filter(cr => cr.subject_id === r.subject_id && examStudents.some(es => es.id === cr.student_id))
-                const subjectClassAverage = subjectClassResults.length ? subjectClassResults.reduce((sum, cr) => sum + Number(cr.score) / Number(selectedExam.max_score) * 100, 0) / subjectClassResults.length : 0
-                return <div className="report-subject-row" key={r.id}>
-                  <span className="report-subject-name">{subject?.name || 'Learning area'}</span>
-                  <div className="report-subject-bars">
-                    <div className="report-performance-row"><span>Learner</span><div className="report-performance-track"><i style={{width: learnerPct + '%'}} /></div><strong>{learnerPct.toFixed(1)}%</strong></div>
-                    <div className="report-performance-row"><span>Class avg.</span><div className="report-performance-track class"><i style={{width: subjectClassAverage + '%'}} /></div><strong>{subjectClassAverage.toFixed(1)}%</strong></div>
-                  </div>
+          <b>SUBJECT PERFORMANCE · LEARNER VS CLASS AVERAGE</b>
+          <div className="report-subject-legend"><span><i className="learner-key" /> Learner</span><span><i className="class-key" /> Class average</span></div>
+          <div className="report-subject-chart">
+            {reportResults.map(r => {
+              const subject = subjects.find(s => s.id === r.subject_id)
+              const learnerPct = Number(selectedExam.max_score) > 0 ? Number(r.score) / Number(selectedExam.max_score) * 100 : 0
+              const subjectClassResults = results.filter(cr => cr.subject_id === r.subject_id && examStudents.some(es => es.id === cr.student_id))
+              const subjectClassAverage = subjectClassResults.length ? subjectClassResults.reduce((sum, cr) => sum + Number(cr.score) / Number(selectedExam.max_score) * 100, 0) / subjectClassResults.length : 0
+              return <div className="report-subject-chart-group" key={r.id}>
+                <div className="report-subject-chart-values"><strong>{learnerPct.toFixed(0)}%</strong><strong>{subjectClassAverage.toFixed(0)}%</strong></div>
+                <div className="report-subject-chart-bars">
+                  <div className="report-subject-column"><i className="learner-bar" style={{height: learnerPct + '%'}} /></div>
+                  <div className="report-subject-column"><i className="class-bar" style={{height: subjectClassAverage + '%'}} /></div>
                 </div>
-              })}
-            </section>
+                <span className="report-subject-chart-label">{subject?.name || 'Learning area'}</span>
+              </div>
+            })}
+          </div>
+        </section>
             {learnerResults.length === 0 && <p className="bulk-report-empty">No subject marks have been recorded for this learner.</p>}
             <div className="bulk-report-signatures"><span>Class teacher's signature: ____________________</span><span>Headteacher's signature: ____________________</span><span>Parent/Guardian: ____________________</span></div>
             <footer>{selectedSchool?.name || 'School'} · Learner Progress Report</footer>
