@@ -428,7 +428,7 @@ export default function App() {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [loginType, setLoginType] = useState<'staff' | 'parent'>('staff')
-  const [parentPhone, setParentPhone] = useState('')
+  const [parentEmail, setParentEmail] = useState('')
   const [parentAccount, setParentAccount] = useState<{ id: string; school_id: string; parent_name: string; phone: string } | null>(null)
   const [checkingAccount, setCheckingAccount] = useState(false)
   const [password, setPassword] = useState('')
@@ -493,7 +493,7 @@ export default function App() {
       if (!session) { setAdmin(false); setSchools([]); return }
       setCheckingAccount(true)
       const { data: parent } = await supabase.from('parent_accounts')
-        .select('id, school_id, parent_name, phone')
+        .select('id, school_id, parent_name, phone, email')
         .eq('auth_user_id', session.user.id).eq('status', 'active').maybeSingle()
       if (cancelled) return
       if (parent) { setParentAccount(parent); setCheckingAccount(false); return }
@@ -547,7 +547,7 @@ export default function App() {
   async function authenticate(e: FormEvent) {
     e.preventDefault(); setError(''); setNotice('')
     if (mode === 'login') {
-      const credentials = loginType === 'parent' ? { phone: parentPhone.trim(), password } : { email, password }
+      const credentials = loginType === 'parent' ? { email: parentEmail.trim().toLowerCase(), password } : { email, password }
       const { error } = await supabase.auth.signInWithPassword(credentials)
       if (error) setError(error.message)
     } else {
@@ -735,11 +735,11 @@ export default function App() {
       <form onSubmit={authenticate} className="form">
         {mode === 'signup' && <label>Full name<input required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" /></label>}
         {loginType === 'staff' && <label>Email address<span className="input-icon"><Mail /><input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" /></span></label>}
-        {loginType === 'parent' && <label>Phone number<span className="input-icon"><Users /><input type="tel" required value={parentPhone} onChange={e => setParentPhone(e.target.value)} placeholder="+2547XXXXXXXX" /></span></label>}
+        {loginType === 'parent' && <label>Email address<span className="input-icon"><Mail /><input type="email" required value={parentEmail} onChange={e => setParentEmail(e.target.value)} placeholder="parent@example.com" /></span></label>}
         <label>Password<span className="input-icon"><Lock /><input type="password" minLength={8} required value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" /></span></label>
         <button className="primary" type="submit">{mode === 'login' ? 'Sign in' : 'Create account'} <ArrowRight /></button>
       </form>
-      {loginType === 'parent' && mode === 'login' && <p className="muted">Parent accounts are created by the school. Use the phone number and temporary password provided by the school.</p>}
+      {loginType === 'parent' && mode === 'login' && <p className="muted">Parent accounts are created by the school. Use the email address and temporary password provided by the school.</p>}
       <p className="switch">{mode === 'login' ? "Don't have an account?" : 'Already registered?'} <button onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setLoginType('staff'); setError(''); setNotice('') }}>{mode === 'login' ? 'Create account' : 'Sign in'}</button></p>
       {error && <p className="alert error"><XCircle />{error}</p>}{notice && <p className="alert success"><CheckCircle2 />{notice}</p>}
     </div></section>
