@@ -471,6 +471,7 @@ export default function App() {
   const [invitationCode, setInvitationCode] = useState('')
   const [claimingInvitation, setClaimingInvitation] = useState(false)
   const [staffAccount, setStaffAccount] = useState<{ role: string; school_id: string; staff_id: string } | null>(null)
+  const [schoolDashboard, setSchoolDashboard] = useState({ loading: false, error: '', yearName: '', learners: 0, boys: 0, girls: 0, staff: 0, present: 0, recorded: 0, collected: 0, balance: 0 })
   const rolePages: Record<string, string[]> = {
     school_admin: ['academic', 'class-profiles', 'examinations', 'timetable', 'students', 'promotion', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports', 'school-reports', 'parents', 'announcements', 'profile'],
     head_teacher: ['academic', 'class-profiles', 'examinations', 'timetable', 'students', 'promotion', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports', 'school-reports', 'parents', 'announcements', 'profile'],
@@ -524,6 +525,59 @@ export default function App() {
     void loadStaffAccount()
     return () => { cancelled = true }
   }, [session])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadSchoolDashboard() {
+      if (!staffAccount?.school_id || admin || page !== 'dashboard') return
+      const schoolId = staffAccount.school_id
+      setSchoolDashboard(current => ({ ...current, loading: true, error: '' }))
+      const [yearResult, studentsResult, staffResult, attendanceResult] = await Promise.all([
+        supabase.from('academic_years').select('id,name').eq('school_id', schoolId).eq('is_current', true).maybeSingle(),
+        supabase.from('students').select('id,gender,class_id').eq('school_id', schoolId).eq('status', 'active'),
+        supabase.from('staff').select('id').eq('school_id', schoolId).eq('status', 'active'),
+        supabase.from('student_attendance').select('status').eq('school_id', schoolId).eq('attendance_date', new Date().toLocaleDateString('en-CA'))
+      ])
+      const failed = [yearResult, studentsResult, staffResult, attendanceResult].find(result => result.error)
+      if (failed?.error) {
+        if (!cancelled) setSchoolDashboard(current => ({ ...current, loading: false, error: failed.error.message }))
+        return
+      }
+      const students = studentsResult.data || []
+      const feesResult = yearResult.data
+        ? await supabase.from('fee_structures').select('id,class_id,amount_kes').eq('school_id', schoolId).eq('academic_year_id', yearResult.data.id)
+        : { data: [], error: null }
+      if (cancelled) return
+      if (feesResult.error) {
+        setSchoolDashboard(current => ({ ...current, loading: false, error: feesResult.error.message }))
+        return
+      }
+      const fees = feesResult.data || []
+      const feeIds = fees.map(fee => fee.id)
+      const paymentsResult = feeIds.length
+        ? await supabase.from('fee_payments').select('student_id,fee_structure_id,amount_kes').eq('school_id', schoolId).in('fee_structure_id', feeIds)
+        : { data: [], error: null }
+      if (cancelled) return
+      if (paymentsResult.error) {
+        setSchoolDashboard(current => ({ ...current, loading: false, error: paymentsResult.error.message }))
+        return
+      }
+      const payments = paymentsResult.data || []
+      const charged = students.reduce((sum, student) => sum + fees.filter(fee => fee.class_id === student.class_id).reduce((total, fee) => total + Number(fee.amount_kes || 0), 0), 0)
+      const collected = payments.reduce((sum, payment) => sum + Number(payment.amount_kes || 0), 0)
+      const balance = Math.max(0, charged - collected)
+      const attendance = attendanceResult.data || []
+      setSchoolDashboard({
+        loading: false, error: '', yearName: yearResult.data?.name || 'No current academic year selected',
+        learners: students.length, boys: students.filter(student => student.gender === 'male').length,
+        girls: students.filter(student => student.gender === 'female').length, staff: (staffResult.data || []).length,
+        present: attendance.filter(row => row.status === 'present' || row.status === 'late').length,
+        recorded: attendance.length, collected, balance
+      })
+    }
+    void loadSchoolDashboard()
+    return () => { cancelled = true }
+  }, [staffAccount?.school_id, admin, page])
 
   useEffect(() => {
     if (!admin && page !== 'dashboard' && page !== 'apply' && !canAccess(page)) setPage('dashboard')
@@ -888,13 +942,27 @@ export default function App() {
             {school.logo_url ? <img src={school.logo_url} alt={school.name + ' logo'} style={{ width: 76, height: 76, objectFit: 'contain', borderRadius: 8 }} /> : <Building2 size={42} />}
             <div><h2 style={{ margin: 0 }}>{school.name}</h2>{school.motto && <p className="muted" style={{ margin: '6px 0 0' }}>{school.motto}</p>}<p className="muted" style={{ margin: '5px 0 0' }}>{school.county || ''}{school.sub_county ? ' · ' + school.sub_county : ''}</p></div>
           </div> : null })()}
-          <div className="empty"><Building2 /><h3>Welcome to Smart Minds</h3><p>Use the invitation code from your school to link your staff account. Make sure you are signed in with the email address registered by your school.</p></div>
-          {staffAccount ? <div className="notice"><ShieldCheck /> Staff account linked. Assigned role: <b>{staffAccount.role.replace(/_/g, ' ')}</b>. Your school workspace access will be enabled as the role-based modules are completed.</div> : <form className="school-form" onSubmit={claimInvitation}>
+          {staffAccount ? <>
+            <div className="welcome"><div><p className="kicker">SCHOOL DASHBOARD · {schoolDashboard.yearName || 'CURRENT ACADEMIC YEAR'}</p><h2>Welcome to {schools.find(s => s.id === staffAccount.school_id)?.name || 'your school'}</h2><p className="muted">A live overview of your school's learners, staff, attendance and finances.</p></div><button className="secondary" onClick={() => { setPage('profile'); const school = schools.find(item => item.id === staffAccount.school_id); if (school) { setProfileDraft({ name: school.name || '', school_type: school.school_type || 'primary_secondary', applicant_name: school.applicant_name || '', contact_email: school.contact_email || '', contact_phone: school.contact_phone || '', county: school.county || '', sub_county: school.sub_county || '', address: school.address || '', registration_number: school.registration_number || '' }); setProfileMotto(school.motto || ''); setProfileLogoUrl(school.logo_url || '') } }}>School profile</button></div>
+            {schoolDashboard.error && <p className="alert error"><XCircle />Dashboard data could not be fully loaded: {schoolDashboard.error}</p>}
+            <div className="stats">
+              <article className="panel"><GraduationCap /><span>Total learners</span><b>{schoolDashboard.loading ? '…' : schoolDashboard.learners}</b></article>
+              <article className="panel"><Users /><span>Boys / Girls</span><b>{schoolDashboard.loading ? '…' : schoolDashboard.boys + ' / ' + schoolDashboard.girls}</b></article>
+              <article className="panel"><ShieldCheck /><span>Active teachers & staff</span><b>{schoolDashboard.loading ? '…' : schoolDashboard.staff}</b></article>
+              <article className="panel"><CalendarCheck /><span>Today's attendance</span><b>{schoolDashboard.loading ? '…' : schoolDashboard.present + ' / ' + schoolDashboard.recorded}</b><small className="muted">Present / recorded</small></article>
+              <article className="panel"><Wallet /><span>Fees collected · current year</span><b>{schoolDashboard.loading ? '…' : 'KES ' + schoolDashboard.collected.toLocaleString('en-KE')}</b></article>
+              <article className="panel"><Wallet /><span>Outstanding · current year</span><b>{schoolDashboard.loading ? '…' : 'KES ' + schoolDashboard.balance.toLocaleString('en-KE')}</b></article>
+            </div>
+            <section className="panel"><div className="panel-heading"><div><h2>Quick access</h2><p className="muted">Open your frequently used school modules.</p></div></div><div className="actions">
+              {(['students','attendance','examinations','fees','fee-statements','school-reports','timetable','staff','announcements'] as const).filter(target => canAccess(target)).map(target => <button key={target} className="secondary" onClick={() => navigate(target)}>{({students:'Learners',attendance:'Attendance',examinations:'Examinations',fees:'Fees', 'fee-statements':'Fee statements','school-reports':'School reports',timetable:'Timetable',staff:'Staff',announcements:'Announcements'} as Record<string,string>)[target]}</button>)}
+            </div></section>
+          </> : <><div className="empty"><Building2 /><h3>Welcome to Smart Minds</h3><p>Use the invitation code from your school to link your staff account. Make sure you are signed in with the email address registered by your school.</p></div></>}
+          {!staffAccount ? <form className="school-form" onSubmit={claimInvitation}>
             <label className="wide">Staff invitation code<input required value={invitationCode} onChange={e => setInvitationCode(e.target.value)} placeholder="Paste your one-time invitation code" autoComplete="off" /></label>
             <button className="primary wide" type="submit" disabled={claimingInvitation}>{claimingInvitation ? 'Verifying code…' : 'Activate staff account'} <ArrowRight /></button>
           </form>}
-          <p className="muted">Invitation codes expire one hour after they are created and can only be used once.</p>
-          <button className="secondary" onClick={() => setPage('apply')}>Register a school <ArrowRight /></button>
+          {!staffAccount && <><p className="muted">Invitation codes expire one hour after they are created and can only be used once.</p>
+          <button className="secondary" onClick={() => setPage('apply')}>Register a school <ArrowRight /></button></>}
         </section>}
       </div>}
       <footer className="app-footer"><span>© {new Date().getFullYear()} Smart Minds · One platform. Many possibilities.</span><span className="developer-credit">Powered by Smart Minds · Developed by <b>Eugene Media Graphix</b> · <a href="tel:0757783275">0757783275</a> · <a href="mailto:eugeneaswani6@gmail.com">eugeneaswani6@gmail.com</a></span></footer>
