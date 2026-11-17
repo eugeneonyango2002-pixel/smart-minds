@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, Pencil, Upload, FileSpreadsheet } from 'lucide-react'
+import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, Pencil, Upload, FileSpreadsheet, Eye } from 'lucide-react'
+import StudentProfile from './StudentProfile'
 import { supabase } from '../lib/supabase'
 type School = { id: string; name: string }
 type ClassRow = { id: string; name: string }
@@ -9,7 +10,7 @@ const blank = { admission_number:'', first_name:'', middle_name:'', last_name:''
 export default function StudentManager({ schools, canManage = true }: { schools: School[]; canManage?: boolean }) {
   const [schoolId,setSchoolId]=useState(''),[students,setStudents]=useState<Student[]>([]),[classes,setClasses]=useState<ClassRow[]>([]),[streams,setStreams]=useState<StreamRow[]>([])
   const [form,setForm]=useState(blank),[adding,setAdding]=useState(false),[editingStudentId,setEditingStudentId]=useState<string|null>(null),[busy,setBusy]=useState(false)
-  const [error,setError]=useState(''),[notice,setNotice]=useState(''),[search,setSearch]=useState(''),[csvRows,setCsvRows]=useState<Record<string,string>[]>([]),[csvName,setCsvName]=useState(''),[uploading,setUploading]=useState(false)
+  const [error,setError]=useState(''),[notice,setNotice]=useState(''),[search,setSearch]=useState(''),[csvRows,setCsvRows]=useState<Record<string,string>[]>([]),[csvName,setCsvName]=useState(''),[uploading,setUploading]=useState(false),[profileStudentId,setProfileStudentId]=useState<string|null>(null)
   useEffect(()=>{if(!schoolId&&schools.length)setSchoolId(schools.find(s=>(s as any).status==='approved')?.id||schools[0].id)},[schools,schoolId])
   useEffect(()=>{if(schoolId)void load()},[schoolId])
   async function load(){
@@ -18,6 +19,7 @@ export default function StudentManager({ schools, canManage = true }: { schools:
     if(s.error){setError(s.error.message);return} if(c.error){setError(c.error.message);return} if(t.error){setError(t.error.message);return}
     setStudents((s.data||[]) as Student[]);setClasses(c.data||[]);setStreams(t.data||[])
   }
+  const profileStudent=students.find(s=>s.id===profileStudentId)
   const visible=useMemo(()=>students.filter(s=>(s.first_name+' '+(s.middle_name||'')+' '+s.last_name+' '+s.admission_number).toLowerCase().includes(search.toLowerCase())),[students,search])
   function parseCsv(text:string){
     const rows:string[][]=[];let row:string[]=[];let cell='';let quoted=false
@@ -78,6 +80,7 @@ export default function StudentManager({ schools, canManage = true }: { schools:
     if(result.error)setError(result.error.message);else{setNotice(editingStudentId?'Student details updated successfully.':'Student registered successfully.');cancelForm();await load()}
     setBusy(false)
   }
+  if(profileStudent&&schoolId)return <StudentProfile student={profileStudent} schoolId={schoolId} className={classes.find(c=>c.id===profileStudent.class_id)?.name||''} streamName={streams.find(t=>t.id===profileStudent.stream_id)?.name||''} onBack={()=>setProfileStudentId(null)}/>
   return <section className="panel student-panel">
     <div className="academic-head"><div><p className="kicker">SCHOOL RECORDS</p><h2>Student management</h2><p className="muted">Register learners, assign classes and streams, and maintain admission records.</p></div><button className="secondary" onClick={()=>void load()}><RefreshCw/> Refresh</button></div>
     <label className="school-picker">Select school<select value={schoolId} onChange={e=>{setSchoolId(e.target.value);cancelForm()}}>{schools.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
@@ -112,6 +115,6 @@ export default function StudentManager({ schools, canManage = true }: { schools:
       <div className="academic-form-actions"><button type="button" className="secondary" onClick={cancelForm}>Cancel</button><button className="primary" disabled={busy}>{busy?'Saving…':editingStudentId?'Save changes':'Save student'}</button></div>
     </form>}
     <div className="student-count"><Users/> {visible.length} student record(s)</div>
-    {visible.length===0?<div className="empty"><Users/><h3>No students found</h3><p>Register a learner to begin building your school register.</p></div>:<div className="table-wrap"><table><thead><tr><th>Admission no.</th><th>Student</th><th>Gender</th><th>Class</th><th>Stream</th><th>Guardian</th><th>Status</th>{canManage&&<th>Actions</th>}</tr></thead><tbody>{visible.map(s=><tr key={s.id}><td><b>{s.admission_number}</b></td><td><b>{s.first_name} {s.middle_name||''} {s.last_name}</b><small>Admitted {s.admission_date}</small></td><td>{s.gender}</td><td>{classes.find(c=>c.id===s.class_id)?.name||'—'}</td><td>{streams.find(t=>t.id===s.stream_id)?.name||'—'}</td><td>{s.guardian_name||'—'}<small>{s.guardian_phone||''}</small></td><td><span className="status approved">{s.status}</span></td>{canManage&&<td><button className="secondary" onClick={()=>startEdit(s)}><Pencil/> Edit</button></td>}</tr>)}</tbody></table></div>}
+    {visible.length===0?<div className="empty"><Users/><h3>No students found</h3><p>Register a learner to begin building your school register.</p></div>:<div className="table-wrap"><table><thead><tr><th>Admission no.</th><th>Student</th><th>Gender</th><th>Class</th><th>Stream</th><th>Guardian</th><th>Status</th><th>Profile</th>{canManage&&<th>Actions</th>}</tr></thead><tbody>{visible.map(s=><tr key={s.id}><td><b>{s.admission_number}</b></td><td><b>{s.first_name} {s.middle_name||''} {s.last_name}</b><small>Admitted {s.admission_date}</small></td><td>{s.gender}</td><td>{classes.find(c=>c.id===s.class_id)?.name||'—'}</td><td>{streams.find(t=>t.id===s.stream_id)?.name||'—'}</td><td>{s.guardian_name||'—'}<small>{s.guardian_phone||''}</small></td><td><span className="status approved">{s.status}</span></td><td><button className="secondary" onClick={()=>setProfileStudentId(s.id)}><Eye/> View profile</button></td>{canManage&&<td><button className="secondary" onClick={()=>startEdit(s)}><Pencil/> Edit</button></td>}</tr>)}</tbody></table></div>}
   </section>
 }
