@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, UserPlus, Copy } from 'lucide-react'
+import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, UserPlus, Copy, Upload } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type School = { id: string; name: string; status?: string }
@@ -42,6 +42,7 @@ export default function StaffManager({ schools }: { schools: School[] }) {
   const [allocationBusy, setAllocationBusy] = useState(false)
   const [balancingBusy, setBalancingBusy] = useState<string | null>(null)
   const [allocationLoading, setAllocationLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
   useEffect(() => {
     if (!schoolId && schools.length) setSchoolId(schools.find(s => s.status === 'approved')?.id || schools[0].id)
   }, [schools, schoolId])
@@ -145,6 +146,64 @@ export default function StaffManager({ schools }: { schools: School[] }) {
       setCopyNotice('Select and copy the invitation code shown above.')
     }
   }
+  function parseCsvLine(line: string): string[] {
+    const values: string[] = []
+    let value = ''
+    let quoted = false
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+      if (char === '"' && line[i + 1] === '"' && quoted) { value += '"'; i++ }
+      else if (char === '"') quoted = !quoted
+      else if (char === ',' && !quoted) { values.push(value.trim()); value = '' }
+      else value += char
+    }
+    values.push(value.trim())
+    return values
+  }
+  async function importStaffFile(file?: File) {
+    if (!file || !schoolId) return
+    setImporting(true); setError(''); setNotice('')
+    try {
+      const lines = (await file.text()).replace(/^\uFEFF/, '').split(/\r?\n/).filter(line => line.trim())
+      if (lines.length < 2) throw new Error('The file must contain a heading row and at least one staff record.')
+      const headers = parseCsvLine(lines[0]).map(value => value.toLowerCase().replace(/[\s_-]+/g, ''))
+      const nameIndex = headers.findIndex(value => ['name','fullname','staffname','employeename'].includes(value))
+      if (nameIndex < 0) throw new Error('Please include a Name column. Example: Name, Phone, Email, Role.')
+      const index = (names: string[]) => headers.findIndex(value => names.includes(value))
+      const phoneIndex = index(['phone','phonenumber','mobile'])
+      const emailIndex = index(['email','emailaddress'])
+      const roleIndex = index(['role','staffrole','position'])
+      const employmentIndex = index(['employmenttype','employment'])
+      const dateIndex = index(['datejoined','dateofjoining'])
+      const records = lines.slice(1).map((line, rowIndex) => {
+        const cells = parseCsvLine(line)
+        const fullName = (cells[nameIndex] || '').trim()
+        if (!fullName) throw new Error('A staff name is missing on CSV row ' + (rowIndex + 2) + '.')
+        const parts = fullName.split(/\s+/)
+        const rawRole = roleIndex >= 0 ? (cells[roleIndex] || '').trim().toLowerCase().replace(/[\s-]+/g, '_') : 'teacher'
+        const roles = ['teacher','head_teacher','deputy_head_teacher','bursar','secretary','support_staff','other']
+        const rawEmployment = employmentIndex >= 0 ? (cells[employmentIndex] || '').trim().toLowerCase().replace(/[\s-]+/g, '_') : 'permanent'
+        const employments = ['permanent','contract','part_time','intern','volunteer']
+        return {
+          school_id: schoolId, employee_number: '',
+          first_name: parts[0], middle_name: parts.length > 2 ? parts.slice(1, -1).join(' ') : null,
+          last_name: parts.length > 1 ? parts[parts.length - 1] : parts[0],
+          phone: phoneIndex >= 0 ? (cells[phoneIndex] || '').trim() || null : null,
+          email: emailIndex >= 0 ? (cells[emailIndex] || '').trim() || null : null,
+          staff_role: roles.includes(rawRole) ? rawRole : 'teacher',
+          employment_type: employments.includes(rawEmployment) ? rawEmployment : 'permanent',
+          date_joined: dateIndex >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(cells[dateIndex] || '') ? cells[dateIndex] : new Date().toISOString().slice(0, 10),
+          status: 'active'
+        }
+      })
+      const { error } = await supabase.from('staff').insert(records)
+      if (error) throw error
+      setNotice(records.length + ' staff member(s) imported successfully. Staff numbers were generated automatically.')
+      await load()
+    } catch (problem) {
+      setError(problem instanceof Error ? problem.message : 'Could not import this file.')
+    } finally { setImporting(false) }
+  }
   async function save(e: FormEvent) {
     e.preventDefault()
     if (!schoolId) return
@@ -166,6 +225,13 @@ export default function StaffManager({ schools }: { schools: School[] }) {
     <div className="academic-head"><div><p className="kicker">SCHOOL RECORDS</p><h2>Staff management</h2><p className="muted">Register teachers and employees, record their roles and contact details, and maintain the staff register.</p></div><button className="secondary" onClick={() => void load()}><RefreshCw /> Refresh</button></div>
     <label className="school-picker">Select school<select value={schoolId} onChange={e => { setSchoolId(e.target.value); setAdding(false) }}>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
     <div className="student-toolbar"><div className="student-search"><Search /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, staff number, phone or email" /></div><button className="primary" disabled={!schoolId} onClick={() => { setAdding(!adding); setEditingId(null); setForm(blank); setError(''); setNotice('') }}><Plus /> Add staff member</button></div>
+    <div className="student-toolbar" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
+      <label className="secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: importing ? 'wait' : 'pointer', padding: '10px 14px', borderRadius: 10 }}>
+        <Upload /> {importing ? 'Importing staff…' : 'Upload staff CSV'}
+        <input type="file" accept=".csv,text/csv" disabled={!schoolId || importing} onChange={e => { void importStaffFile(e.target.files?.[0]); e.currentTarget.value = '' }} style={{ display: 'none' }} />
+      </label>
+    </div>
+    <p className="muted">CSV must have a <b>Name</b> column. Optional columns: Phone, Email, Role, Employment Type, Date Joined (YYYY-MM-DD). New staff numbers are generated automatically.</p>
     {error && <p className="alert error"><XCircle />{error}</p>}{notice && <p className="alert success"><CheckCircle2 />{notice}</p>}
     {invitation && <div className="notice invitation-panel"><div><b>Staff invitation for {invitation.name}</b><p className="muted">This one-time code expires 1 hour after it was created. The staff member must register/sign in using the email on their staff record.</p><code className="invitation-code">{invitation.code}</code>{copyNotice && <p className="muted">{copyNotice}</p>}</div><button type="button" className="secondary" onClick={() => void copyInvitation()}><Copy /> Copy code</button></div>}
     {adding && <form className="academic-form" onSubmit={save}>
