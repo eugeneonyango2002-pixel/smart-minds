@@ -1,6 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<rect width="512" height="512" rx="112" fill="#123b73"/>
-<path d="M105 145h302v48H105zm0 88h302v48H105zm0 88h210v48H105z" fill="#fff" opacity=".95"/>
-<circle cx="374" cy="345" r="57" fill="#f4b942"/>
-<path d="m348 345 18 18 37-40" fill="none" stroke="#123b73" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0757c9"/>
+      <stop offset="1" stop-color="#071d55"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe27a"/>
+      <stop offset="1" stop-color="#e9a91b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="235" r="170" fill="#fff" opacity=".07"/>
+  <path d="M256 158 92 105l164-54 164 54z" fill="#061943" stroke="#f5c64b" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M256 158v35" stroke="#f5c64b" stroke-width="12" stroke-linecap="round"/>
+  <path d="M420 107v74" stroke="#f5c64b" stroke-width="10" stroke-linecap="round"/>
+  <path d="M420 176c-27 25-23 51 0 63 23-12 27-38 0-63z" fill="url(#gold)"/>
+  <path d="M91 274c61-28 116-20 165 20 49-40 104-48 165-20v112c-62-26-117-18-165 24-48-42-103-50-165-24z" fill="#fff" stroke="#dceaff" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M256 294v116" stroke="#0c4ba8" stroke-width="10" stroke-linecap="round"/>
+  <path d="M109 295c48-15 91-8 129 20v70c-39-27-82-34-129-20z" fill="#eaf3ff"/>
+  <path d="M403 295c-48-15-91-8-129 20v70c39-27 82-34 129-20z" fill="#fff1c9"/>
+  <path d="M132 328c34-8 65-2 92 16M132 354c34-8 65-2 92 16M288 344c27-18 58-24 92-16M288 370c27-18 58-24 92-16" fill="none" stroke="#8eb9f2" stroke-width="8" stroke-linecap="round"/>
+  <path d="m124 207 12 24 27 4-20 18 5 27-24-13-24 13 5-27-20-18 27-4z" fill="url(#gold)"/>
+  <path d="m388 211 9 18 20 3-15 14 4 20-18-10-18 10 4-20-15-14 20-3z" fill="url(#gold)"/>
+  <path d="M256 444v22" stroke="#f5c64b" stroke-width="10" stroke-linecap="round"/>
 </svg>
