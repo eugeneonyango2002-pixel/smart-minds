@@ -204,10 +204,14 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
           const learnerTotal = learnerResults.reduce((sum,r) => sum + Number(r.score), 0)
           const learnerPossible = learnerResults.length * Number(selectedExam.max_score || 0)
           const learnerAverage = learnerPossible ? learnerTotal / learnerPossible * 100 : 0
+          const classResults = results.filter(r => examStudents.some(s => s.id === r.student_id))
+          const classTotal = classResults.reduce((sum,r) => sum + Number(r.score), 0)
+          const classPossible = classResults.length * Number(selectedExam.max_score || 0)
+          const classAverage = classPossible ? classTotal / classPossible * 100 : 0
           return <article className="bulk-report-page" key={learner.id}>
             <header className="bulk-report-heading">
               <div className="bulk-report-school-brand">
-                {selectedSchool?.logo_url ? <img src={selectedSchool.logo_url} alt="School logo" /> : <div className="bulk-report-logo-placeholder">SM</div>}
+                {selectedSchool?.logo_url ? <img src={selectedSchool.logo_url} alt="School logo" /> : <div className="bulk-report-logo-placeholder">SCHOOL</div>}
                 <div className="bulk-report-school-identity">
                   <h1>{selectedSchool?.name || 'School Report Form'}</h1>
                   {selectedSchool?.motto && <p className="bulk-report-motto">“{selectedSchool.motto}”</p>}
@@ -235,15 +239,20 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
                 return <tr key={r.id}><td>{subject?.name || 'Learning area'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{pct.toFixed(1)}%</td><td>{grade(Number(r.score), Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td></tr>
               })}</tbody>
             </table>
-            <div className="bulk-report-summary"><span><b>Total score:</b> {learnerTotal.toFixed(1)}</span><span><b>Average:</b> {learnerAverage.toFixed(1)}%</span><span><b>Overall CBC level:</b> {learnerResults.length ? grade(learnerAverage, 100) : '—'}</span></div>
+            <div className="bulk-report-summary"><span><b>Total score:</b> {learnerTotal.toFixed(1)}</span><span><b>Learner average:</b> {learnerAverage.toFixed(1)}%</span><span><b>Overall CBC level:</b> {learnerResults.length ? grade(learnerAverage, 100) : '—'}</span></div>
+            <section className="report-performance-graph" aria-label="Learner performance compared with class average">
+              <b>PERFORMANCE COMPARISON</b>
+              <div className="report-performance-row"><span>Learner</span><div className="report-performance-track"><i style={{width: learnerAverage + '%'}} /></div><strong>{learnerAverage.toFixed(1)}%</strong></div>
+              <div className="report-performance-row"><span>Class average</span><div className="report-performance-track class"><i style={{width: classAverage + '%'}} /></div><strong>{classAverage.toFixed(1)}%</strong></div>
+            </section>
             {learnerResults.length === 0 && <p className="bulk-report-empty">No subject marks have been recorded for this learner.</p>}
             <div className="bulk-report-signatures"><span>Class teacher's signature: ____________________</span><span>Headteacher's signature: ____________________</span><span>Parent/Guardian: ____________________</span></div>
-            <footer>Smart Minds · Learner Progress Report</footer>
+            <footer>{selectedSchool?.name || 'School'} · Learner Progress Report</footer>
           </article>
         })}
       </div>}
       {student && selectedExam && <div className="panel" id="learner-report-card">
-        <div className="panel-heading"><div><p className="kicker">SMART MINDS · LEARNER REPORT</p><h2>{fullName(student)}</h2><p className="muted">{student.admission_number} · {classes.find(c => c.id === student.class_id)?.name || ''}</p></div><button className="secondary" onClick={() => window.print()}><Printer/> Print report card</button></div>
+        <div className="panel-heading"><div><p className="kicker">{selectedSchool?.name || 'SCHOOL'} · LEARNER REPORT</p><h2>{fullName(student)}</h2><p className="muted">{student.admission_number} · {classes.find(c => c.id === student.class_id)?.name || ''}</p></div><button className="secondary" onClick={() => window.print()}><Printer/> Print report card</button></div>
         <h3>{selectedExam.name}</h3>
         <div className="table-wrap"><table><thead><tr><th>Learning area</th><th>Score</th><th>Percentage</th><th>CBC achievement level</th><th>Teacher remarks</th></tr></thead><tbody>{reportResults.map(r => { const sub = subjects.find(x => x.id === r.subject_id); const pct = Number(r.score) / Number(selectedExam.max_score) * 100; return <tr key={r.id}><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{pct.toFixed(1)}%</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td></tr> })}</tbody></table></div>
         <div className="stats"><article className="panel"><span>Total score</span><b>{total.toFixed(1)}</b></article><article className="panel"><span>Average</span><b>{average.toFixed(1)}%</b></article><article className="panel"><span>Overall CBC level</span><b>{reportResults.length ? grade(average,100) : '—'}</b></article></div>
