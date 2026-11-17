@@ -12,6 +12,7 @@ export default function ParentManager({ schools }: { schools: School[] }) {
   const [classes, setClasses] = useState<ClassRow[]>([])
   const [parentName, setParentName] = useState('')
   const [email, setEmail] = useState('')
+  const [currentUserEmail, setCurrentUserEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [temporaryPassword, setTemporaryPassword] = useState('')
   const [relationship, setRelationship] = useState('Parent')
@@ -20,6 +21,13 @@ export default function ParentManager({ schools }: { schools: School[] }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const ownEmail = String(data.user?.email || '').trim().toLowerCase()
+      if (ownEmail) { setCurrentUserEmail(ownEmail); setEmail(current => current || ownEmail) }
+    })
+  }, [])
 
   useEffect(() => {
     if (!schoolId && schools.length) setSchoolId(schools.find(s => (s as any).status === 'approved')?.id || schools[0].id)
@@ -70,7 +78,7 @@ export default function ParentManager({ schools }: { schools: School[] }) {
         throw new Error(result.error.message)
       }
       if (result.data?.error) throw new Error(result.data.error)
-      setNotice('Parent account created. Give the parent their email address and temporary password securely.')
+      setNotice(result.data?.reused_existing_login ? 'Parent access linked to your existing Super Admin login. You can switch between both workspaces without signing out.' : 'Parent account created. Give the parent their email address and temporary password securely.')
       setParentName(''); setEmail(''); setPhone(''); setTemporaryPassword(''); setSelected([]); setRelationship('Parent')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create the parent account.')
@@ -86,7 +94,7 @@ export default function ParentManager({ schools }: { schools: School[] }) {
       <label>Parent / guardian full name *<input required value={parentName} onChange={e => setParentName(e.target.value)} placeholder="Enter full name" /></label>
       <label>Email address *<input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="parent@example.com" /></label>
       <label>Phone number *<input required value={phone} onChange={e => setPhone(e.target.value)} placeholder="+2547XXXXXXXX" /></label>
-      <label>Temporary password *<input required type="password" minLength={8} autoComplete="new-password" value={temporaryPassword} onChange={e => setTemporaryPassword(e.target.value)} placeholder="At least 8 characters" /></label>
+      <label>Temporary password {email.trim().toLowerCase() === currentUserEmail ? "(not needed for your existing login)" : "*"}<input required={email.trim().toLowerCase() !== currentUserEmail} type="password" minLength={email.trim().toLowerCase() === currentUserEmail ? undefined : 8} autoComplete="new-password" value={temporaryPassword} onChange={e => setTemporaryPassword(e.target.value)} placeholder={email.trim().toLowerCase() === currentUserEmail ? "Your existing password will remain unchanged" : "At least 8 characters"} /></label>
       <label>Relationship to learner<select value={relationship} onChange={e => setRelationship(e.target.value)}><option>Parent</option><option>Mother</option><option>Father</option><option>Guardian</option><option>Other</option></select></label>
       <div className="wide">
         <h3><Users size={18} /> Link learners ({selected.length} selected)</h3>
