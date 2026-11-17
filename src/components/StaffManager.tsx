@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, UserPlus, Copy, Upload, FileSpreadsheet } from 'lucide-react'
+import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, UserPlus, Copy, Upload, FileSpreadsheet, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type School = { id: string; name: string; status?: string }
@@ -21,7 +21,7 @@ const roleLabels: Record<string, string> = {
   teacher: 'Teacher', head_teacher: 'Head teacher', deputy_head_teacher: 'Deputy head teacher',
   bursar: 'Bursar', secretary: 'Secretary', support_staff: 'Support staff', other: 'Other'
 }
-export default function StaffManager({ schools }: { schools: School[] }) {
+export default function StaffManager({ schools, canDelete = false }: { schools: School[]; canDelete?: boolean }) {
   const [schoolId, setSchoolId] = useState('')
   const [staff, setStaff] = useState<Staff[]>([])
   const [form, setForm] = useState(blank)
@@ -126,6 +126,14 @@ export default function StaffManager({ schools }: { schools: School[] }) {
   const visible = useMemo(() => staff.filter(s =>
     (s.first_name + ' ' + (s.middle_name || '') + ' ' + s.last_name + ' ' + s.employee_number + ' ' + (s.phone || '') + ' ' + (s.email || '')).toLowerCase().includes(search.toLowerCase())
   ), [staff, search])
+  async function deleteStaffMember(member: Staff) {
+    if (!schoolId || !window.confirm('Permanently delete ' + member.first_name + ' ' + member.last_name + ' and linked staff records? This cannot be undone.')) return
+    setBusy(true); setError(''); setNotice('')
+    const { error } = await supabase.rpc('delete_school_record', { p_school_id: schoolId, p_entity: 'staff', p_record_id: member.id })
+    if (error) setError(error.message)
+    else { setNotice('Staff member and linked records deleted.'); await load(); await loadWorkload() }
+    setBusy(false)
+  }
   async function createInvitation(member: Staff) {
     setInvitingId(member.id); setError(''); setNotice(''); setInvitation(null); setCopyNotice('')
     const role = member.staff_role === 'other' ? 'support_staff' : member.staff_role
@@ -275,6 +283,6 @@ export default function StaffManager({ schools }: { schools: School[] }) {
       {staff.filter(member => member.staff_role === 'teacher' && member.status === 'active').length === 0 && <p className="muted">No active teachers are available. Register teachers with the Teacher role and Active status.</p>}
     </section>
     <div className="student-count"><Users /> {visible.length} staff record(s)</div>
-    {visible.length === 0 ? <div className="empty"><Users /><h3>No staff found</h3><p>Add your first teacher or employee to begin building the staff register.</p></div> : <div className="table-wrap"><table><thead><tr><th>Staff no.</th><th>Staff member</th><th>Role</th><th>Contact</th><th>Employment</th><th>Date joined</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visible.map(s => <tr key={s.id}><td><b>{s.employee_number}</b></td><td><b>{s.first_name} {s.middle_name || ''} {s.last_name}</b><small>{s.gender || '—'}</small></td><td>{roleLabels[s.staff_role] || s.staff_role}</td><td>{s.phone || '—'}<small>{s.email || ''}</small></td><td>{s.employment_type.replace(/_/g, ' ')}</td><td>{s.date_joined}</td><td><span className={'status ' + (s.status === 'active' ? 'approved' : 'pending')}>{s.status.replace(/_/g, ' ')}</span></td><td><div className="actions"><button type="button" className="secondary" onClick={() => { setForm({ employee_number: s.employee_number, first_name: s.first_name, middle_name: s.middle_name || '', last_name: s.last_name, gender: s.gender || '', phone: s.phone || '', email: s.email || '', staff_role: s.staff_role, employment_type: s.employment_type, date_joined: s.date_joined, status: s.status }); setEditingId(s.id); setAdding(true); setError(''); setNotice('') }}>Edit</button><button type="button" className="secondary" disabled={!s.email || s.status !== 'active' || invitingId === s.id} onClick={() => void createInvitation(s)}><UserPlus /> {invitingId === s.id ? 'Creating…' : 'Invite'}</button></div></td></tr>)}</tbody></table></div>}
+    {visible.length === 0 ? <div className="empty"><Users /><h3>No staff found</h3><p>Add your first teacher or employee to begin building the staff register.</p></div> : <div className="table-wrap"><table><thead><tr><th>Staff no.</th><th>Staff member</th><th>Role</th><th>Contact</th><th>Employment</th><th>Date joined</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visible.map(s => <tr key={s.id}><td><b>{s.employee_number}</b></td><td><b>{s.first_name} {s.middle_name || ''} {s.last_name}</b><small>{s.gender || '—'}</small></td><td>{roleLabels[s.staff_role] || s.staff_role}</td><td>{s.phone || '—'}<small>{s.email || ''}</small></td><td>{s.employment_type.replace(/_/g, ' ')}</td><td>{s.date_joined}</td><td><span className={'status ' + (s.status === 'active' ? 'approved' : 'pending')}>{s.status.replace(/_/g, ' ')}</span></td><td><div className="actions"><button type="button" className="secondary" onClick={() => { setForm({ employee_number: s.employee_number, first_name: s.first_name, middle_name: s.middle_name || '', last_name: s.last_name, gender: s.gender || '', phone: s.phone || '', email: s.email || '', staff_role: s.staff_role, employment_type: s.employment_type, date_joined: s.date_joined, status: s.status }); setEditingId(s.id); setAdding(true); setError(''); setNotice('') }}>Edit</button><button type="button" className="secondary" disabled={!s.email || s.status !== 'active' || invitingId === s.id} onClick={() => void createInvitation(s)}><UserPlus /> {invitingId === s.id ? 'Creating…' : 'Invite'}</button>{canDelete && <button type="button" className="secondary" disabled={busy} onClick={() => void deleteStaffMember(s)}><Trash2 /> Delete</button>}</div></td></tr>)}</tbody></table></div>}
   </section>
 }
