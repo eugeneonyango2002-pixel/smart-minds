@@ -455,7 +455,7 @@ export default function App() {
   const [profileMotto, setProfileMotto] = useState('')
   const [profileLogoUrl, setProfileLogoUrl] = useState('')
   const [profileLogoFile, setProfileLogoFile] = useState<File | null>(null)
-  const [page, setPage] = useState<'dashboard' | 'apply' | 'academic' | 'examinations' | 'timetable' | 'students' | 'promotion' | 'attendance' | 'fees' | 'fee-statements' | 'fee-reports' | 'school-reports' | 'staff' | 'parents' | 'announcements' | 'profile'>('dashboard')
+  const [page, setPage] = useState<'dashboard' | 'apply' | 'academic' | 'examinations' | 'timetable' | 'students' | 'promotion' | 'attendance' | 'fees' | 'fee-statements' | 'fee-reports' | 'school-reports' | 'class-profiles' | 'staff' | 'parents' | 'announcements' | 'profile'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const navigate = (nextPage: typeof page) => { setPage(nextPage); setSidebarOpen(false) }
   const [schoolName, setSchoolName] = useState('')
