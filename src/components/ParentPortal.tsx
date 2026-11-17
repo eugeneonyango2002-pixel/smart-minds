@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 type Account = { id: string; school_id: string; parent_name: string; phone: string }
 type Learner = { id: string; admission_number: string; first_name: string; middle_name: string | null; last_name: string; class_id: string | null }
 type Attendance = { id: string; student_id: string; attendance_date: string; status: string }
-type Payment = { id: string; student_id: string; amount_kes: number; payment_date: string; transaction_reference: string | null }
+type Payment = { id: string; student_id: string; fee_structure_id: string; amount_kes: number; payment_date: string; transaction_reference: string | null }
 type Exam = { id: string; name: string; exam_date: string | null; class_id: string }
 type FeeCharge = { id: string; class_id: string; academic_year_id: string; term_id: string | null; item_name: string; amount_kes: number; due_date: string | null }
 type AcademicYear = { id: string; name: string; is_current: boolean }
