@@ -27,8 +27,9 @@ Deno.serve(async (request) => {
   const phone = String(input.phone || "").trim();
   const password = String(input.password || "");
   const studentIds = Array.isArray(input.student_ids) ? [...new Set(input.student_ids.map(String))] : [];
-  if (!schoolId || !name || !email || !phone || password.length < 8 || !studentIds.length) {
-    return reply({ error: "Complete all fields and select at least one learner. Password must be 8 characters or more." }, 400);
+  const isUsingOwnAccount = email === String(authData.user.email || "").trim().toLowerCase();
+  if (!schoolId || !name || !email || !phone || (!isUsingOwnAccount && password.length < 8) || !studentIds.length) {
+    return reply({ error: "Complete all fields and select at least one learner. A password of 8 characters or more is required only when creating a separate parent login." }, 400);
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({ error: "Enter a valid parent email address." }, 400);
   if (!/^\+[1-9]\d{7,14}$/.test(phone)) return reply({ error: "Use international phone format, e.g. +2547XXXXXXXX." }, 400);
@@ -65,17 +66,23 @@ Deno.serve(async (request) => {
     }, 400);
   }
 
-  const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email, password, email_confirm: true, user_metadata: { full_name: name, account_type: "parent" },
-  });
-  if (createError || !created.user) return reply({ error: createError?.message || "Unable to create login." }, 400);
+  let parentAuthUserId = authData.user.id;
+  let createdNewAuthUser = false;
+  if (!isUsingOwnAccount) {
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email, password, email_confirm: true, user_metadata: { full_name: name, account_type: "parent" },
+    });
+    if (createError || !created.user) return reply({ error: createError?.message || "Unable to create login." }, 400);
+    parentAuthUserId = created.user.id;
+    createdNewAuthUser = true;
+  }
 
   const { data: account, error: accountError } = await admin.from("parent_accounts").insert({
-    school_id: schoolId, auth_user_id: created.user.id, parent_name: name, email, phone,
+    school_id: schoolId, auth_user_id: parentAuthUserId, parent_name: name, email, phone,
     status: "active", created_by: authData.user.id,
   }).select("id").single();
   if (accountError || !account) {
-    await admin.auth.admin.deleteUser(created.user.id);
+    if (createdNewAuthUser) await admin.auth.admin.deleteUser(parentAuthUserId);
     return reply({ error: accountError?.message || "Unable to save parent account." }, 400);
   }
 
@@ -86,9 +93,9 @@ Deno.serve(async (request) => {
   const { error: linksError } = await admin.from("parent_students").insert(links);
   if (linksError) {
     await admin.from("parent_accounts").delete().eq("id", account.id);
-    await admin.auth.admin.deleteUser(created.user.id);
+    if (createdNewAuthUser) await admin.auth.admin.deleteUser(parentAuthUserId);
     return reply({ error: linksError.message }, 400);
   }
 
-  return reply({ success: true, message: "Parent account created." });
+  return reply({ success: true, message: isUsingOwnAccount ? "Parent access linked to your existing Super Admin login." : "Parent account created.", reused_existing_login: isUsingOwnAccount });
 });
