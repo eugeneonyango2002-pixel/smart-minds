@@ -152,6 +152,13 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
     window.print()
   }
 
+  function printIndividualReport() {
+    document.body.classList.add('printing-single-report')
+    const cleanup = () => document.body.classList.remove('printing-single-report')
+    window.addEventListener('afterprint', cleanup, { once: true })
+    window.print()
+  }
+
   return <section className="panel">
     <div className="academic-head"><div><p className="kicker">ASSESSMENT & PERFORMANCE</p><h2>Examinations and report cards</h2><p className="muted">Create examinations, record subject marks and prepare learner performance reports.</p></div><button className="secondary" onClick={() => { void loadSetup(); void loadExams(); if (selectedExamId) void loadResults(selectedExamId) }}><RefreshCw/> Refresh</button></div>
     <label className="school-picker">Select school<select value={schoolId} onChange={e => { setSchoolId(e.target.value); setSelectedExamId(''); setSelectedStudentId('') }}>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
@@ -275,7 +282,7 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
         })}
       </div>}
       {student && selectedExam && <div className="panel" id="learner-report-card">
-        <div className="panel-heading"><div><p className="kicker">{selectedSchool?.name || 'SCHOOL'} · LEARNER REPORT</p><h2>{fullName(student)}</h2><p className="muted">{student.admission_number} · {classes.find(c => c.id === student.class_id)?.name || ''}</p></div><button className="secondary" onClick={() => window.print()}><Printer/> Print report card</button></div>
+        <div className="panel-heading"><div><p className="kicker">{selectedSchool?.name || 'SCHOOL'} · LEARNER REPORT</p><h2>{fullName(student)}</h2><p className="muted">{student.admission_number} · {classes.find(c => c.id === student.class_id)?.name || ''}</p></div><button className="secondary" onClick={printIndividualReport}><Printer/> Print report card</button></div>
         <h3>{selectedExam.name}</h3>
         <div className="table-wrap"><table><thead><tr><th>Learning area</th><th>Score</th><th>Percentage</th><th>CBC achievement level</th><th>Teacher remarks</th></tr></thead><tbody>{reportResults.map(r => { const sub = subjects.find(x => x.id === r.subject_id); const pct = Number(r.score) / Number(selectedExam.max_score) * 100; return <tr key={r.id}><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{pct.toFixed(1)}%</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td></tr> })}</tbody></table></div>
         <div className="stats"><article className="panel"><span>Total score</span><b>{total.toFixed(1)}</b></article><article className="panel"><span>Average</span><b>{average.toFixed(1)}%</b></article><article className="panel"><span>Overall CBC level</span><b>{reportResults.length ? grade(average,100) : '—'}</b></article></div>
