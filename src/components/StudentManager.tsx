@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, Pencil, Upload, FileSpreadsheet, Eye } from 'lucide-react'
+import { Plus, Search, RefreshCw, Users, XCircle, CheckCircle2, Pencil, Upload, FileSpreadsheet, Eye, Trash2 } from 'lucide-react'
 import StudentProfile from './StudentProfile'
 import { supabase } from '../lib/supabase'
 type School = { id: string; name: string }
@@ -18,6 +18,14 @@ export default function StudentManager({ schools, canManage = true }: { schools:
     const [s,c,t]=await Promise.all([supabase.from('students').select('*').eq('school_id',schoolId).order('created_at',{ascending:false}),supabase.from('classes').select('id,name').eq('school_id',schoolId).order('sort_order'),supabase.from('streams').select('id,name,class_id').eq('school_id',schoolId).order('name')])
     if(s.error){setError(s.error.message);return} if(c.error){setError(c.error.message);return} if(t.error){setError(t.error.message);return}
     setStudents((s.data||[]) as Student[]);setClasses(c.data||[]);setStreams(t.data||[])
+  }
+  async function deleteStudent(student: Student) {
+    if (!schoolId || !window.confirm('Permanently delete ' + student.first_name + ' ' + student.last_name + ' and linked records? This cannot be undone.')) return
+    setBusy(true); setError(''); setNotice('')
+    const { error } = await supabase.rpc('delete_school_record', { p_school_id: schoolId, p_entity: 'student', p_record_id: student.id })
+    if (error) setError(error.message)
+    else { setNotice('Learner and linked records deleted.'); if (profileStudentId === student.id) setProfileStudentId(null); await load() }
+    setBusy(false)
   }
   const profileStudent=students.find(s=>s.id===profileStudentId)
   const visible=useMemo(()=>students.filter(s=>(s.first_name+' '+(s.middle_name||'')+' '+s.last_name+' '+s.admission_number).toLowerCase().includes(search.toLowerCase())),[students,search])
@@ -115,6 +123,6 @@ export default function StudentManager({ schools, canManage = true }: { schools:
       <div className="academic-form-actions"><button type="button" className="secondary" onClick={cancelForm}>Cancel</button><button className="primary" disabled={busy}>{busy?'Saving…':editingStudentId?'Save changes':'Save student'}</button></div>
     </form>}
     <div className="student-count"><Users/> {visible.length} student record(s)</div>
-    {visible.length===0?<div className="empty"><Users/><h3>No students found</h3><p>Register a learner to begin building your school register.</p></div>:<div className="table-wrap"><table><thead><tr><th>Admission no.</th><th>Student</th><th>Gender</th><th>Class</th><th>Stream</th><th>Guardian</th><th>Status</th><th>Profile</th>{canManage&&<th>Actions</th>}</tr></thead><tbody>{visible.map(s=><tr key={s.id}><td><b>{s.admission_number}</b></td><td><b>{s.first_name} {s.middle_name||''} {s.last_name}</b><small>Admitted {s.admission_date}</small></td><td>{s.gender}</td><td>{classes.find(c=>c.id===s.class_id)?.name||'—'}</td><td>{streams.find(t=>t.id===s.stream_id)?.name||'—'}</td><td>{s.guardian_name||'—'}<small>{s.guardian_phone||''}</small></td><td><span className="status approved">{s.status}</span></td><td><button className="secondary" onClick={()=>setProfileStudentId(s.id)}><Eye/> View profile</button></td>{canManage&&<td><button className="secondary" onClick={()=>startEdit(s)}><Pencil/> Edit</button></td>}</tr>)}</tbody></table></div>}
+    {visible.length===0?<div className="empty"><Users/><h3>No students found</h3><p>Register a learner to begin building your school register.</p></div>:<div className="table-wrap"><table><thead><tr><th>Admission no.</th><th>Student</th><th>Gender</th><th>Class</th><th>Stream</th><th>Guardian</th><th>Status</th><th>Profile</th>{canManage&&<th>Actions</th>}</tr></thead><tbody>{visible.map(s=><tr key={s.id}><td><b>{s.admission_number}</b></td><td><b>{s.first_name} {s.middle_name||''} {s.last_name}</b><small>Admitted {s.admission_date}</small></td><td>{s.gender}</td><td>{classes.find(c=>c.id===s.class_id)?.name||'—'}</td><td>{streams.find(t=>t.id===s.stream_id)?.name||'—'}</td><td>{s.guardian_name||'—'}<small>{s.guardian_phone||''}</small></td><td><span className="status approved">{s.status}</span></td><td><button className="secondary" onClick={()=>setProfileStudentId(s.id)}><Eye/> View profile</button></td>{canManage&&<td><div className="actions"><button className="secondary" onClick={()=>startEdit(s)}><Pencil/> Edit</button><button className="secondary" disabled={busy} onClick={()=>void deleteStudent(s)}><Trash2/> Delete</button></div></td>}</tr>)}</tbody></table></div>}
   </section>
 }
