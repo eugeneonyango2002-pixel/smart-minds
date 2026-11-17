@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, BookOpen, CalendarCheck, GraduationCap, LogOut, Wallet } from 'lucide-react'
+import { Activity, Bell, BookOpen, CalendarCheck, GraduationCap, LogOut, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type Account = { id: string; school_id: string; parent_name: string; phone: string }
@@ -9,6 +9,7 @@ type Payment = { id: string; student_id: string; fee_structure_id: string; amoun
 type Exam = { id: string; name: string; exam_date: string | null; class_id: string }
 type FeeCharge = { id: string; class_id: string; academic_year_id: string; term_id: string | null; item_name: string; amount_kes: number; due_date: string | null }
 type AcademicYear = { id: string; name: string; is_current: boolean }
+type Announcement = { id: string; title: string; message: string; publish_at: string }
 
 export default function ParentPortal({ account, onSignOut }: { account: Account; onSignOut: () => void }) {
   const [learners, setLearners] = useState<Learner[]>([])
@@ -16,6 +17,7 @@ export default function ParentPortal({ account, onSignOut }: { account: Account;
   const [payments, setPayments] = useState<Payment[]>([])
   const [feeCharges, setFeeCharges] = useState<FeeCharge[]>([])
   const [currentYear, setCurrentYear] = useState<AcademicYear | null>(null)
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [exams, setExams] = useState<Exam[]>([])
   const [results, setResults] = useState<any[]>([])
   const [classes, setClasses] = useState<{id:string;name:string}[]>([])
@@ -28,9 +30,10 @@ export default function ParentPortal({ account, onSignOut }: { account: Account;
     let cancelled = false
     async function load() {
       setLoading(true); setError('')
-      const [schoolResult, linkResult] = await Promise.all([
+      const [schoolResult, linkResult, announcementResult] = await Promise.all([
         supabase.from('schools').select('name').eq('id', account.school_id).maybeSingle(),
-        supabase.from('parent_students').select('student_id').eq('parent_account_id', account.id)
+        supabase.from('parent_students').select('student_id').eq('parent_account_id', account.id),
+        supabase.from('school_announcements').select('id,title,message,publish_at').eq('school_id', account.school_id).eq('status','published').lte('publish_at', new Date().toISOString()).order('publish_at',{ascending:false}).limit(30)
       ])
       if (linkResult.error) { if (!cancelled) setError(linkResult.error.message); setLoading(false); return }
       const ids = (linkResult.data || []).map(x => x.student_id)
@@ -62,6 +65,7 @@ export default function ParentPortal({ account, onSignOut }: { account: Account;
       }
       if (!cancelled) {
         setSchoolName(schoolResult.data?.name || 'School')
+        setAnnouncements((announcementResult.data || []) as Announcement[])
         setLearners(kids); setAttendance((attendanceResult.data || []) as Attendance[])
         setPayments((paymentResult.data || []) as Payment[]); setClasses(classResult.data || [])
         setFeeCharges(chargeRows); setCurrentYear((yearResult.data || null) as AcademicYear | null)
@@ -100,6 +104,9 @@ export default function ParentPortal({ account, onSignOut }: { account: Account;
           <article className="panel"><Wallet/><span>Payments recorded</span><b>KES {totalPaid.toLocaleString()}</b></article>
           <article className="panel"><BookOpen/><span>Published assessments</span><b>{new Set(learnerResults.map(x=>x.examination_id)).size}</b></article>
         </div>}
+        <section className="panel parent-section"><div className="panel-heading"><h2><Bell/> School announcements</h2><span>{announcements.length} updates</span></div>
+          {announcements.length ? <div className="parent-announcement-list">{announcements.map(item=><article className="parent-announcement" key={item.id}><small>{new Date(item.publish_at).toLocaleString('en-KE')}</small><h3>{item.title}</h3><p>{item.message}</p></article>)}</div> : <p className="muted">There are no new school announcements.</p>}
+        </section>
         <section className="panel parent-section"><div className="panel-heading"><h2><CalendarCheck/> Attendance</h2><span>Latest 100 records</span></div>{learnerAttendance.length ? <div className="table-wrap"><table><thead><tr><th>Date</th><th>Status</th></tr></thead><tbody>{learnerAttendance.map(x=><tr key={x.id}><td>{new Date(x.attendance_date+'T00:00:00').toLocaleDateString()}</td><td>{x.status}</td></tr>)}</tbody></table></div>:<p className="muted">No attendance records are available yet.</p>}</section>
         <section className="panel parent-section"><div className="panel-heading"><h2><BookOpen/> Academic results</h2><span>Published examinations only</span></div>{learnerResults.length ? <div className="table-wrap"><table><thead><tr><th>Examination</th><th>Date</th><th>Learning area ID</th><th>Score</th><th>Teacher remarks</th></tr></thead><tbody>{learnerResults.map(x=>{const ex=exams.find(e=>e.id===x.examination_id);return <tr key={x.id}><td>{ex?.name||'Published exam'}</td><td>{ex?.exam_date?new Date(ex.exam_date+'T00:00:00').toLocaleDateString():'—'}</td><td>{x.subject_id}</td><td>{x.score ?? '—'}</td><td>{x.remarks||'—'}</td></tr>})}</tbody></table></div>:<p className="muted">No published results are available for this learner yet.</p>}</section>
         <section className="panel parent-section"><div className="panel-heading"><h2><Wallet/> Fee balance</h2><span>{currentYear?.name || 'Current academic year'}</span></div>
