@@ -51,6 +51,7 @@ grant select on public.student_promotion_history to authenticated;
 create or replace function public.process_student_promotion(
   p_school_id uuid,
   p_student_ids uuid[],
+  p_from_academic_year_id uuid,
   p_action text,
   p_to_academic_year_id uuid default null,
   p_to_class_id uuid default null,
@@ -80,7 +81,7 @@ begin
     raise exception 'Only the school administrator or headteacher can process student progression.';
   end if;
 
-  if p_action not in ('promoted','repeated','graduated','transferred','withdrawn') then
+  if p_action is null or p_action not in ('promoted','repeated','graduated','transferred','withdrawn') then
     raise exception 'Choose a valid student progression action.';
   end if;
 
@@ -88,15 +89,17 @@ begin
     raise exception 'Select at least one learner.';
   end if;
 
-  if cardinality(p_student_ids) <> (select count(distinct x) from unnest(p_student_ids) as x) then
+  if cardinality(p_student_ids) <> (select count(distinct student_id) from unnest(p_student_ids) as ids(student_id)) then
     raise exception 'The learner selection contains duplicates. Refresh and try again.';
   end if;
 
-  select id into v_from_year_id
-  from public.academic_years
-  where school_id = p_school_id and is_current = true
-  order by start_date desc
-  limit 1;
+  v_from_year_id := p_from_academic_year_id;
+  if v_from_year_id is not null and not exists (
+    select 1 from public.academic_years
+    where school_id = p_school_id and id = v_from_year_id
+  ) then
+    raise exception 'The current academic year does not belong to this school.';
+  end if;
 
   if p_action in ('promoted','repeated') then
     if p_to_academic_year_id is null or p_to_class_id is null then
@@ -170,5 +173,5 @@ begin
 end;
 $$;
 
-revoke all on function public.process_student_promotion(uuid, uuid[], text, uuid, uuid, uuid, text) from public;
-grant execute on function public.process_student_promotion(uuid, uuid[], text, uuid, uuid, uuid, text) to authenticated;
+revoke all on function public.process_student_promotion(uuid, uuid[], uuid, text, uuid, uuid, uuid, text) from public;
+grant execute on function public.process_student_promotion(uuid, uuid[], uuid, text, uuid, uuid, uuid, text) to authenticated;
