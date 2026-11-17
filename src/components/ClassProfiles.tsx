@@ -93,10 +93,42 @@ export default function ClassProfiles({ schools, canManage = true }: { schools: 
     {notice && <p className="alert success"><CheckCircle2 />{notice}</p>}
     {!classes.length ? <div className="empty"><GraduationCap /><h3>No classes found</h3><p>Create your classes first under Academic setup.</p></div> : <>
       <label className="school-picker">Choose class<select value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-      {selectedClass && <div className="stats-grid" style={{ marginTop: 16 }}>
-        <div className="stat-card"><span>Active learners</span><strong>{classStudents.length}</strong></div>
-        <div className="stat-card"><span>Boys</span><strong>{boys.length}</strong></div>
-        <div className="stat-card"><span>Girls</span><strong>{girls.length}</strong></div>
+      {selectedClass && <div style={{ marginTop: 22, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 13 }}>
+          <div>
+            <p className="kicker" style={{ marginBottom: 4 }}>CLASS OVERVIEW</p>
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 750 }}>Learner snapshot</h3>
+          </div>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderRadius: 999, background: '#ecfdf5', color: '#047857', fontSize: 12, fontWeight: 700 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981' }} /> Live class count
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: 13 }}>
+          <div style={{ position: 'relative', overflow: 'hidden', padding: '18px 17px', borderRadius: 17, background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', border: '1px solid #dbeafe', boxShadow: '0 5px 18px rgba(37,99,235,.07)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ color: '#1d4ed8', fontSize: 12, fontWeight: 750, letterSpacing: '.045em', textTransform: 'uppercase' }}>Active learners</span>
+              <span style={{ display: 'grid', placeItems: 'center', width: 36, height: 36, borderRadius: 12, background: '#dbeafe', color: '#1d4ed8' }}><Users size={19} /></span>
+            </div>
+            <div style={{ marginTop: 11, color: '#172554', fontSize: 34, lineHeight: 1, fontWeight: 800, letterSpacing: '-.04em' }}>{classStudents.length}</div>
+            <div style={{ marginTop: 7, color: '#64748b', fontSize: 12 }}>Total enrolled in this class</div>
+          </div>
+          <div style={{ position: 'relative', overflow: 'hidden', padding: '18px 17px', borderRadius: 17, background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', border: '1px solid #dbeafe', boxShadow: '0 5px 18px rgba(37,99,235,.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ color: '#2563eb', fontSize: 12, fontWeight: 750, letterSpacing: '.045em', textTransform: 'uppercase' }}>Boys</span>
+              <span style={{ display: 'grid', placeItems: 'center', width: 36, height: 36, borderRadius: 12, background: '#dbeafe', color: '#2563eb', fontSize: 19, fontWeight: 800 }}>♂</span>
+            </div>
+            <div style={{ marginTop: 11, color: '#172554', fontSize: 34, lineHeight: 1, fontWeight: 800, letterSpacing: '-.04em' }}>{boys.length}</div>
+            <div style={{ marginTop: 7, color: '#64748b', fontSize: 12 }}>Male learners</div>
+          </div>
+          <div style={{ position: 'relative', overflow: 'hidden', padding: '18px 17px', borderRadius: 17, background: 'linear-gradient(135deg, #fdf2f8 0%, #ffffff 100%)', border: '1px solid #fce7f3', boxShadow: '0 5px 18px rgba(219,39,119,.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ color: '#be185d', fontSize: 12, fontWeight: 750, letterSpacing: '.045em', textTransform: 'uppercase' }}>Girls</span>
+              <span style={{ display: 'grid', placeItems: 'center', width: 36, height: 36, borderRadius: 12, background: '#fce7f3', color: '#be185d', fontSize: 19, fontWeight: 800 }}>♀</span>
+            </div>
+            <div style={{ marginTop: 11, color: '#831843', fontSize: 34, lineHeight: 1, fontWeight: 800, letterSpacing: '-.04em' }}>{girls.length}</div>
+            <div style={{ marginTop: 7, color: '#64748b', fontSize: 12 }}>Female learners</div>
+          </div>
+        </div>
       </div>}
       <div className="panel" style={{ marginTop: 18 }}>
         <div className="academic-head"><div><p className="kicker">CLASS LEADERSHIP</p><h3>{selectedClass?.name || 'Class'} profile</h3></div><span className="status approved">{profile ? 'Profile saved' : 'Not yet set up'}</span></div>
