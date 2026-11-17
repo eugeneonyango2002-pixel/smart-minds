@@ -11,7 +11,7 @@ type FeeCharge = { id: string; class_id: string; academic_year_id: string; term_
 type AcademicYear = { id: string; name: string; is_current: boolean }
 type Announcement = { id: string; title: string; message: string; publish_at: string }
 
-export default function ParentPortal({ account, onSignOut }: { account: Account; onSignOut: () => void }) {
+export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { account: Account; onSignOut: () => void; onSwitchToAdmin?: () => void }) {
   const [learners, setLearners] = useState<Learner[]>([])
   const [attendance, setAttendance] = useState<Attendance[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
@@ -91,7 +91,7 @@ export default function ParentPortal({ account, onSignOut }: { account: Account;
   const attendanceRate = learnerAttendance.length ? Math.round(learnerAttendance.filter(x=>String(x.status).toLowerCase()==='present').length/learnerAttendance.length*100) : null
 
   return <div className="parent-portal">
-    <header className="parent-portal-header"><div className="parent-brand"><span className="parent-logo"><GraduationCap /></span><div><b>SMART MINDS</b><small>{schoolName}</small></div></div><button className="secondary" onClick={onSignOut}><LogOut/> Sign out</button></header>
+    <header className="parent-portal-header"><div className="parent-brand"><span className="parent-logo"><GraduationCap /></span><div><b>SMART MINDS</b><small>{schoolName}</small></div></div>{onSwitchToAdmin && <button className="secondary" onClick={onSwitchToAdmin}>Admin workspace</button>}<button className="secondary" onClick={onSignOut}><LogOut/> Sign out</button></header>
     <main className="parent-portal-main">
       <div className="parent-welcome"><div><p className="kicker">PARENT PORTAL</p><h1>Welcome, {account.parent_name}</h1><p className="muted">View your children's school progress and updates.</p></div></div>
       {error && <p className="alert error">{error}</p>}
