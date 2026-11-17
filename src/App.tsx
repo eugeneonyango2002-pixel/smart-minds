@@ -960,7 +960,7 @@ export default function App() {
           {!staffAccount ? <form className="school-form" onSubmit={claimInvitation}>
             <label className="wide">Staff invitation code<input required value={invitationCode} onChange={e => setInvitationCode(e.target.value)} placeholder="Paste your one-time invitation code" autoComplete="off" /></label>
             <button className="primary wide" type="submit" disabled={claimingInvitation}>{claimingInvitation ? 'Verifying code…' : 'Activate staff account'} <ArrowRight /></button>
-          </form>}
+          </form> : null}
           {!staffAccount && <><p className="muted">Invitation codes expire one hour after they are created and can only be used once.</p>
           <button className="secondary" onClick={() => setPage('apply')}>Register a school <ArrowRight /></button></>}
         </section>}
