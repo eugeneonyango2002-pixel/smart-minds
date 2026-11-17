@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { BookOpen, ClipboardList, Download, Plus, Printer, RefreshCw, Save, XCircle, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
-type School = { id: string; name: string; motto?: string | null; logo_url?: string | null }
+type School = { id: string; name: string; motto?: string | null; logo_url?: string | null; registration_number?: string | null; address?: string | null; county?: string | null; sub_county?: string | null; contact_phone?: string | null; contact_email?: string | null }
 type Row = { id: string; [key: string]: any }
 type Exam = Row & { name: string; class_id: string; academic_year_id: string; term_id: string | null; max_score: number; status: string }
 type Learner = Row & { first_name: string; middle_name?: string | null; last_name: string; admission_number: string; class_id: string | null }
@@ -206,8 +206,20 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
           const learnerAverage = learnerPossible ? learnerTotal / learnerPossible * 100 : 0
           return <article className="bulk-report-page" key={learner.id}>
             <header className="bulk-report-heading">
-              {selectedSchool?.logo_url && <img src={selectedSchool.logo_url} alt="" />}
-              <div><h1>{selectedSchool?.name || 'School Report Form'}</h1>{selectedSchool?.motto && <p>{selectedSchool.motto}</p>}<h2>LEARNER PROGRESS REPORT</h2></div>
+              <div className="bulk-report-school-brand">
+                {selectedSchool?.logo_url ? <img src={selectedSchool.logo_url} alt="School logo" /> : <div className="bulk-report-logo-placeholder">SM</div>}
+                <div className="bulk-report-school-identity">
+                  <h1>{selectedSchool?.name || 'School Report Form'}</h1>
+                  {selectedSchool?.motto && <p className="bulk-report-motto">“{selectedSchool.motto}”</p>}
+                  <div className="bulk-report-school-contacts">
+                    {selectedSchool?.registration_number && <span><b>School No.:</b> {selectedSchool.registration_number}</span>}
+                    {(selectedSchool?.address || selectedSchool?.sub_county || selectedSchool?.county) && <span>{[selectedSchool.address, selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(', ')}</span>}
+                    {selectedSchool?.contact_phone && <span><b>Tel:</b> {selectedSchool.contact_phone}</span>}
+                    {selectedSchool?.contact_email && <span><b>Email:</b> {selectedSchool.contact_email}</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="bulk-report-title-band"><span>OFFICIAL ACADEMIC RECORD</span><h2>LEARNER PROGRESS REPORT</h2></div>
             </header>
             <div className="bulk-report-meta">
               <span><b>Learner:</b> {fullName(learner)}</span><span><b>Admission No.:</b> {learner.admission_number}</span>
