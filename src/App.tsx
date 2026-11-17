@@ -472,7 +472,7 @@ export default function App() {
   const [staffAccount, setStaffAccount] = useState<{ role: string; school_id: string; staff_id: string } | null>(null)
   const rolePages: Record<string, string[]> = {
     school_admin: ['academic', 'examinations', 'timetable', 'students', 'promotion', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports', 'school-reports', 'parents', 'announcements', 'profile'],
-    head_teacher: ['academic', 'examinations', 'timetable', 'students', 'promotion', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports', 'parents', 'announcements', 'profile'],
+    head_teacher: ['academic', 'examinations', 'timetable', 'students', 'promotion', 'staff', 'attendance', 'fees', 'fee-statements', 'fee-reports', 'school-reports', 'parents', 'announcements', 'profile'],
     deputy_head_teacher: ['academic', 'examinations', 'timetable', 'students', 'attendance'],
     teacher: ['students', 'attendance', 'examinations', 'timetable'],
     bursar: ['fees', 'fee-statements', 'fee-reports', 'school-reports'], 
