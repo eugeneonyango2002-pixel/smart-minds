@@ -23,12 +23,14 @@ Deno.serve(async (request) => {
   const input = await request.json();
   const schoolId = String(input.school_id || "");
   const name = String(input.parent_name || "").trim();
+  const email = String(input.email || "").trim().toLowerCase();
   const phone = String(input.phone || "").trim();
   const password = String(input.password || "");
   const studentIds = Array.isArray(input.student_ids) ? [...new Set(input.student_ids.map(String))] : [];
-  if (!schoolId || !name || !phone || password.length < 8 || !studentIds.length) {
+  if (!schoolId || !name || !email || !phone || password.length < 8 || !studentIds.length) {
     return reply({ error: "Complete all fields and select at least one learner. Password must be 8 characters or more." }, 400);
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({ error: "Enter a valid parent email address." }, 400);
   if (!/^\+[1-9]\d{7,14}$/.test(phone)) return reply({ error: "Use international phone format, e.g. +2547XXXXXXXX." }, 400);
 
   const { data: staff } = await caller.from("staff_login_accounts").select("role")
@@ -57,12 +59,12 @@ Deno.serve(async (request) => {
   }
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
-    phone, password, phone_confirm: true, user_metadata: { full_name: name, account_type: "parent" },
+    email, password, email_confirm: true, user_metadata: { full_name: name, account_type: "parent" },
   });
   if (createError || !created.user) return reply({ error: createError?.message || "Unable to create login." }, 400);
 
   const { data: account, error: accountError } = await admin.from("parent_accounts").insert({
-    school_id: schoolId, auth_user_id: created.user.id, parent_name: name, phone,
+    school_id: schoolId, auth_user_id: created.user.id, parent_name: name, email, phone,
     status: "active", created_by: authData.user.id,
   }).select("id").single();
   if (accountError || !account) {
