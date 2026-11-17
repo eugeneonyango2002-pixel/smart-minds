@@ -632,3 +632,52 @@ tbody tr:hover{background:#f8fbff}
  .parent-section .panel-heading>span{white-space:nowrap}
  .parent-fee-totals{grid-template-columns:1fr}
 }
+
+
+/* Unified premium metric cards across Smart Minds modules. */
+.stats{gap:14px;margin-top:16px}
+.stats .panel{
+  min-width:0;
+  min-height:132px;
+  padding:19px;
+  gap:10px;
+  border:1px solid #e2eaf5;
+  border-radius:17px;
+  background:linear-gradient(145deg,#f0f6ff 0%,#ffffff 78%);
+  box-shadow:0 7px 22px rgba(34,82,145,.07);
+  transition:transform .18s ease,box-shadow .18s ease;
+}
+.stats .panel:nth-child(2){background:linear-gradient(145deg,#effaf5 0%,#ffffff 78%);border-color:#dcefe5}
+.stats .panel:nth-child(3){background:linear-gradient(145deg,#f5f1ff 0%,#ffffff 78%);border-color:#e8e0fb}
+.stats .panel:nth-child(4){background:linear-gradient(145deg,#fff6eb 0%,#ffffff 78%);border-color:#f6e8d5}
+.stats .panel:after{width:112px;height:112px;right:-42px;top:-48px;opacity:.75}
+.stats .panel:nth-child(2):after{background:linear-gradient(135deg,#dff5e9,#c9eedc)}
+.stats .panel:nth-child(3):after{background:linear-gradient(135deg,#eee7ff,#e2d9ff)}
+.stats .panel:nth-child(4):after{background:linear-gradient(135deg,#ffedd8,#ffe2bf)}
+.stats .panel svg{width:22px;height:22px;color:#2869bd}
+.stats .panel:nth-child(2) svg{color:#16845c}
+.stats .panel:nth-child(3) svg{color:#7654b8}
+.stats .panel:nth-child(4) svg{color:#bd7625}
+.stats .panel span{font-size:11px;font-weight:700;letter-spacing:.025em;color:#647790}
+.stats .panel b{font-size:clamp(21px,2.2vw,27px);line-height:1.15;font-weight:800;color:#17365f;overflow-wrap:anywhere}
+.stats .panel:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(34,82,145,.11)}
+.student-count{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  padding:10px 14px;
+  margin:14px 0 18px;
+  border:1px solid #dce9f8;
+  border-radius:12px;
+  background:linear-gradient(110deg,#edf5ff,#ffffff);
+  color:#315b88;
+  font-size:12px;
+  font-weight:700;
+  box-shadow:0 4px 14px rgba(37,99,170,.05);
+}
+.student-count svg{width:18px;height:18px;color:#2869bd}
+@media(max-width:680px){
+  .stats{gap:9px}
+  .stats .panel{min-height:116px;padding:14px;border-radius:14px}
+  .stats .panel b{font-size:21px}
+}
