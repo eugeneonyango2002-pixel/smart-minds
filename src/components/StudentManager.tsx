@@ -28,6 +28,11 @@ export default function StudentManager({ schools, canManage = true }: { schools:
     if(!headers.includes('name')&&!headers.includes('full_name')&&!(headers.includes('first_name')&&headers.includes('last_name')))throw new Error('Please include one name column headed name (or full_name).')
     return rows.slice(1).map(values=>Object.fromEntries(headers.map((h,i)=>[h,values[i]||''])))
   }
+  function downloadStudentTemplate() {
+    const csv = 'Name,gender,date_of_birth,admission_date,class,stream,guardian_name,guardian_relationship,guardian_phone,guardian_email,address\nExample Student,male,2018-05-10,2026-01-01,Grade 1,,Example Parent,parent,0712345678,parent@example.com,Example address\n'
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+    const link = document.createElement('a'); link.href = url; link.download = 'Smart_Minds_Student_Registration_Template.csv'; link.click(); URL.revokeObjectURL(url)
+  }
   async function importCsv(){
     if(!schoolId||!csvRows.length)return
     setUploading(true);setError('');setNotice('')
@@ -79,6 +84,7 @@ export default function StudentManager({ schools, canManage = true }: { schools:
     <div className="student-toolbar"><div className="student-search"><Search/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name or admission number"/></div>{canManage&&<button className="primary" disabled={!schoolId} onClick={()=>{if(adding)cancelForm();else{setEditingStudentId(null);setForm(blank);setAdding(true)}setError('');setNotice('')}}><Plus/> Register student</button>}</div>
     {canManage&&<section className="panel" style={{marginTop:16}}>
       <div className="panel-heading"><div><h3><FileSpreadsheet size={18}/> Bulk student upload</h3><p className="muted">Upload a CSV file to register many learners together.</p></div></div>
+      <button type="button" className="secondary" onClick={downloadStudentTemplate}><FileSpreadsheet size={16}/> Download Student CSV Template</button>
       <p className="muted">Required column: <b>name</b> (the learner's full name in one cell). Optional: gender, date_of_birth, admission_date, class, stream, guardian_name, guardian_relationship, guardian_phone, guardian_email, address. Class and stream names must match those already registered.</p>
       <label>Choose CSV file<input type="file" accept=".csv,text/csv" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;try{setCsvRows(parseCsv(await file.text()));setCsvName(file.name);setError('');setNotice('')}catch(err){setCsvRows([]);setCsvName('');setError(err instanceof Error?err.message:'Unable to read CSV file.')}}}/></label>
       {csvName&&<p className="muted">{csvName} · {csvRows.length} learner row(s) ready</p>}
