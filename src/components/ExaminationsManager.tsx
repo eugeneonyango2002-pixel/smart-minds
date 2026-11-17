@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { BookOpen, ClipboardList, Plus, Printer, RefreshCw, Save, XCircle, CheckCircle2 } from 'lucide-react'
+import { BookOpen, ClipboardList, Download, Plus, Printer, RefreshCw, Save, XCircle, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
-type School = { id: string; name: string }
+type School = { id: string; name: string; motto?: string | null; logo_url?: string | null }
 type Row = { id: string; [key: string]: any }
 type Exam = Row & { name: string; class_id: string; academic_year_id: string; term_id: string | null; max_score: number; status: string }
 type Learner = Row & { first_name: string; middle_name?: string | null; last_name: string; admission_number: string; class_id: string | null }
@@ -139,6 +139,15 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
   const possible = reportResults.length * Number(selectedExam?.max_score || 0)
   const average = possible ? total / possible * 100 : 0
   const student = students.find(s => s.id === selectedStudentId)
+  const selectedSchool = schools.find(s => s.id === schoolId)
+
+  function printClassReports() {
+    if (!selectedExam || examStudents.length === 0) return
+    document.body.classList.add('printing-bulk-reports')
+    const cleanup = () => document.body.classList.remove('printing-bulk-reports')
+    window.addEventListener('afterprint', cleanup, { once: true })
+    window.print()
+  }
 
   return <section className="panel">
     <div className="academic-head"><div><p className="kicker">ASSESSMENT & PERFORMANCE</p><h2>Examinations and report cards</h2><p className="muted">Create examinations, record subject marks and prepare learner performance reports.</p></div><button className="secondary" onClick={() => { void loadSetup(); void loadExams(); if (selectedExamId) void loadResults(selectedExamId) }}><RefreshCw/> Refresh</button></div>
@@ -181,7 +190,46 @@ export default function ExaminationsManager({ schools }: { schools: School[] }) 
     </>}
     {tab === 'reports' && <>
       <label className="school-picker">Select examination<select value={selectedExamId} onChange={e => { setSelectedExamId(e.target.value); setSelectedStudentId('') }}><option value="">Select examination</option>{exams.map(ex => <option key={ex.id} value={ex.id}>{ex.name} · {classes.find(c => c.id === ex.class_id)?.name || ''}</option>)}</select></label>
-      {selectedExam && <label className="school-picker">Select learner<select value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)}><option value="">Select learner</option>{examStudents.map(s => <option key={s.id} value={s.id}>{s.admission_number} · {fullName(s)}</option>)}</select></label>}
+      {selectedExam && <>
+        <div className="bulk-report-toolbar">
+          <div><b>{classes.find(c => c.id === selectedExam.class_id)?.name || 'Selected class'}</b><span>{examStudents.length} learner{examStudents.length === 1 ? '' : 's'} · {selectedExam.name}</span></div>
+          <button className="primary" onClick={printClassReports} disabled={!examStudents.length || !results.length}><Download/> Download all report forms</button>
+        </div>
+        <p className="muted">All learners in this examination's class will be included. Each report form is formatted to fit on one A4 page. In the print window, choose “Save as PDF” to download one combined file.</p>
+        <label className="school-picker">Or select one learner to preview<select value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)}><option value="">Select learner</option>{examStudents.map(s => <option key={s.id} value={s.id}>{s.admission_number} · {fullName(s)}</option>)}</select></label>
+      </>}
+      {selectedExam && examStudents.length > 0 && <div id="bulk-report-print" aria-hidden="true">
+        {examStudents.map(learner => {
+          const learnerResults = results.filter(r => r.student_id === learner.id).sort((a,b) => (subjects.find(s => s.id === a.subject_id)?.name || '').localeCompare(subjects.find(s => s.id === b.subject_id)?.name || ''))
+          const learnerTotal = learnerResults.reduce((sum,r) => sum + Number(r.score), 0)
+          const learnerPossible = learnerResults.length * Number(selectedExam.max_score || 0)
+          const learnerAverage = learnerPossible ? learnerTotal / learnerPossible * 100 : 0
+          return <article className="bulk-report-page" key={learner.id}>
+            <header className="bulk-report-heading">
+              {selectedSchool?.logo_url && <img src={selectedSchool.logo_url} alt="" />}
+              <div><h1>{selectedSchool?.name || 'School Report Form'}</h1>{selectedSchool?.motto && <p>{selectedSchool.motto}</p>}<h2>LEARNER PROGRESS REPORT</h2></div>
+            </header>
+            <div className="bulk-report-meta">
+              <span><b>Learner:</b> {fullName(learner)}</span><span><b>Admission No.:</b> {learner.admission_number}</span>
+              <span><b>Class:</b> {classes.find(c => c.id === learner.class_id)?.name || '—'}</span>
+              <span><b>Examination:</b> {selectedExam.name}</span>
+              <span><b>Academic year:</b> {years.find(y => y.id === selectedExam.academic_year_id)?.name || '—'}</span>
+              <span><b>Term:</b> {terms.find(t => t.id === selectedExam.term_id)?.name || '—'}</span>
+            </div>
+            <table className="bulk-report-table"><thead><tr><th>Learning area</th><th>Score</th><th>Percentage</th><th>CBC level</th><th>Teacher remarks</th></tr></thead>
+              <tbody>{learnerResults.map(r => {
+                const subject = subjects.find(s => s.id === r.subject_id)
+                const pct = Number(selectedExam.max_score) > 0 ? Number(r.score) / Number(selectedExam.max_score) * 100 : 0
+                return <tr key={r.id}><td>{subject?.name || 'Learning area'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{pct.toFixed(1)}%</td><td>{grade(Number(r.score), Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td></tr>
+              })}</tbody>
+            </table>
+            <div className="bulk-report-summary"><span><b>Total score:</b> {learnerTotal.toFixed(1)}</span><span><b>Average:</b> {learnerAverage.toFixed(1)}%</span><span><b>Overall CBC level:</b> {learnerResults.length ? grade(learnerAverage, 100) : '—'}</span></div>
+            {learnerResults.length === 0 && <p className="bulk-report-empty">No subject marks have been recorded for this learner.</p>}
+            <div className="bulk-report-signatures"><span>Class teacher's signature: ____________________</span><span>Headteacher's signature: ____________________</span><span>Parent/Guardian: ____________________</span></div>
+            <footer>Smart Minds · Learner Progress Report</footer>
+          </article>
+        })}
+      </div>}
       {student && selectedExam && <div className="panel" id="learner-report-card">
         <div className="panel-heading"><div><p className="kicker">SMART MINDS · LEARNER REPORT</p><h2>{fullName(student)}</h2><p className="muted">{student.admission_number} · {classes.find(c => c.id === student.class_id)?.name || ''}</p></div><button className="secondary" onClick={() => window.print()}><Printer/> Print report card</button></div>
         <h3>{selectedExam.name}</h3>
