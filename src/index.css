@@ -1087,3 +1087,37 @@ button,input,select,textarea{max-width:100%}
 @media(prefers-reduced-motion:reduce){
   html:focus-within{scroll-behavior:auto}
 }
+
+
+/* School administration organisational chart */
+.school-admin-panel{overflow:hidden}
+.org-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.org-summary article{display:grid;gap:7px;padding:13px;border:1px solid #e5ebf2;border-radius:10px;background:#f8fafd;min-width:0}
+.org-summary svg{width:19px;color:#FD840B}
+.org-summary span{font-size:11px;color:#748399}
+.org-summary b{font:800 22px Manrope;color:#002C66}
+.org-toolbar{justify-content:flex-start;flex-wrap:wrap}
+.org-chart{overflow-x:auto;padding:14px 4px 24px}
+.org-school-title{display:flex;justify-content:center;align-items:center;gap:9px;color:#002C66;font:800 16px Manrope;margin:4px auto 20px}
+.org-school-title svg{color:#FD840B}
+.org-roots{display:flex;justify-content:center;align-items:flex-start;gap:22px;min-width:max-content}
+.org-branch{display:flex;flex-direction:column;align-items:center;gap:16px;min-width:220px;max-width:270px}
+.org-node{width:100%;border:1px solid #dce5ef;border-top:4px solid #002C66;border-radius:12px;padding:14px;background:#fff;box-shadow:0 5px 18px #17395b0d}
+.org-node.vacant{border-top-color:#FD840B}
+.org-node-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.org-node-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:#eef3f9;color:#002C66}
+.org-node-icon svg{width:17px}
+.org-status{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:5px 7px;border-radius:20px}
+.org-status.filled{background:#eaf7ef;color:#28764b}.org-status.vacant{background:#fff3e6;color:#a75a08}
+.org-node h3{font:800 14px Manrope;color:#173451;margin:11px 0 5px}
+.org-department,.org-description{font-size:10px;color:#77869a;margin:4px 0}
+.org-assignee{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#002C66;margin:10px 0}
+.org-assignee svg{width:14px;height:14px;flex-shrink:0}
+.org-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;border-top:1px solid #edf1f5;padding-top:10px}
+.org-actions button{font-size:10px;padding:7px 8px}
+.org-children{display:flex;align-items:flex-start;justify-content:center;gap:14px;position:relative;padding-top:18px}
+.org-children:before{content:"";position:absolute;top:0;left:50%;height:14px;border-left:2px solid #d5dfeb}
+.org-children>.org-branch:before{content:"";position:relative;display:block;width:2px;height:10px;background:#d5dfeb;margin-top:-18px}
+.org-footnote{font-size:10px;margin-top:18px}
+@media(max-width:760px){.org-summary{grid-template-columns:1fr 1fr}.org-roots{justify-content:flex-start}.org-branch{min-width:205px;max-width:230px}.org-children{gap:10px}.org-actions button{font-size:9px}}
+@media print{body *{visibility:hidden!important}.school-admin-panel,.school-admin-panel *{visibility:visible!important}.school-admin-panel{position:absolute!important;inset:0!important;width:100%!important;border:0!important;box-shadow:none!important}.school-admin-panel .org-toolbar,.school-admin-panel .school-picker,.school-admin-panel .org-footnote,.school-admin-panel .academic-head button,.school-admin-panel .org-actions{display:none!important}.org-chart{overflow:visible!important}.org-roots{flex-wrap:wrap;min-width:0}.org-branch{break-inside:avoid}.org-node{box-shadow:none!important}}
