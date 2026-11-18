@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type CSSProperties, type ReactElement } from 'react'
 import { Plus, RefreshCw, Network, Users, UserRound, Pencil, Trash2, XCircle, CheckCircle2, Download, Building2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -108,9 +108,9 @@ export default function SchoolAdministration({ schools, canManage = false }: { s
     setSaving(false)
   }
 
-  function renderBranch(position: Position, depth = 0): JSX.Element {
+  function renderBranch(position: Position, depth = 0): ReactElement {
     const children = childrenOf(position.id)
-    return <div className="org-branch" key={position.id} style={{ '--org-depth': depth } as React.CSSProperties}>
+    return <div className="org-branch" key={position.id} style={{ '--org-depth': depth } as CSSProperties}>
       <article className={'org-node' + (position.staff_id ? ' filled' : ' vacant')}>
         <div className="org-node-top"><span className="org-node-icon"><Building2 /></span><span className={position.staff_id ? 'org-status filled' : 'org-status vacant'}>{position.staff_id ? 'Assigned' : 'Vacant'}</span></div>
         <h3>{position.title}</h3>
