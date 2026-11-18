@@ -946,3 +946,9 @@ tbody tr:hover{background:#f8fbff}
 .stats svg,.academic-panel .empty>svg,.student-count svg{color:var(--sm-orange)}
 .menu-toggle{background:#fff0df;color:var(--sm-navy)}
 .receipt-number b,.receipt-amount strong{color:var(--sm-navy)}
+
+/* Official Smart Minds logo placements */
+.auth-brand img{display:block;width:min(560px,100%);height:auto;max-height:112px;object-fit:contain;object-position:left center}
+.mobile-brand img{display:block;width:min(360px,100%);height:auto;max-height:76px;object-fit:contain}
+.sidebar-brand img{display:block;width:190px;max-width:100%;height:auto;max-height:48px;object-fit:contain;object-position:left center}
+@media(max-width:680px){.mobile-brand{display:flex;width:100%;max-width:340px}.mobile-brand img{width:100%;max-height:none}}
