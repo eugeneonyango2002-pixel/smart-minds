@@ -38,6 +38,12 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
   const [results, setResults] = useState<Result[]>([])
   const [selectedExamId, setSelectedExamId] = useState('')
   const [selectedStudentId, setSelectedStudentId] = useState('')
+  const [reportMode, setReportMode] = useState<'exam' | 'term'>('term')
+  const [selectedTermId, setSelectedTermId] = useState('')
+  const [selectedTermClassId, setSelectedTermClassId] = useState('')
+  const [termResults, setTermResults] = useState<(Result & { examination_id: string })[]>([])
+  const [termAttendance, setTermAttendance] = useState<{ student_id: string; status: string; attendance_date: string }[]>([])
+  const [termLoading, setTermLoading] = useState(false)
   const [tab, setTab] = useState<'exams' | 'marks' | 'reports'>('exams')
   const [form, setForm] = useState({ academic_year_id: '', term_id: '', class_id: '', name: '', exam_date: new Date().toISOString().slice(0,10), max_score: '100' })
   const [mark, setMark] = useState({ student_id: '', subject_id: '', score: '', remarks: '' })
@@ -57,7 +63,7 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
     setError('')
     const [y,t,c,s,cs,st] = await Promise.all([
       supabase.from('academic_years').select('id,name').eq('school_id',schoolId).order('start_date'),
-      supabase.from('terms').select('id,name,academic_year_id').eq('school_id',schoolId).order('start_date'),
+      supabase.from('terms').select('id,name,academic_year_id,start_date,end_date').eq('school_id',schoolId).order('start_date'),
       supabase.from('classes').select('id,name').eq('school_id',schoolId).order('sort_order'),
       supabase.from('subjects').select('id,name,category').eq('school_id',schoolId).order('name'),
       supabase.from('class_subjects').select('id,class_id,subject_id').eq('school_id',schoolId),
@@ -100,6 +106,35 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
       setExams(list)
       if (!selectedExamId && list[0]) setSelectedExamId(list[0].id)
     }
+  }
+
+  useEffect(() => {
+    if (tab === 'reports' && reportMode === 'term' && selectedTermId && schoolId) void loadTermReport()
+  }, [tab, reportMode, selectedTermId, schoolId])
+
+  async function loadTermReport() {
+    const term = terms.find(t => t.id === selectedTermId)
+    if (!term || !schoolId) return
+    setTermLoading(true); setError('')
+    const termExams = exams.filter(e => e.term_id === selectedTermId)
+    if (!termExams.length) {
+      setTermResults([]); setTermAttendance([]); setTermLoading(false); return
+    }
+    const examIds = termExams.map(e => e.id)
+    const [resultResponse, attendanceResponse] = await Promise.all([
+      supabase.from('exam_results').select('id,examination_id,student_id,subject_id,score,remarks').eq('school_id', schoolId).in('examination_id', examIds),
+      term.start_date && term.end_date
+        ? supabase.from('student_attendance').select('student_id,status,attendance_date').eq('school_id', schoolId).gte('attendance_date', term.start_date).lte('attendance_date', term.end_date)
+        : supabase.from('student_attendance').select('student_id,status,attendance_date').eq('school_id', schoolId)
+    ])
+    if (resultResponse.error) setError(resultResponse.error.message)
+    else setTermResults((resultResponse.data || []) as (Result & { examination_id: string })[])
+    if (attendanceResponse.error) setError(attendanceResponse.error.message)
+    else {
+      const rows = (attendanceResponse.data || []) as { student_id: string; status: string; attendance_date: string }[]
+      setTermAttendance(term.start_date && term.end_date ? rows.filter(r => r.attendance_date >= term.start_date && r.attendance_date <= term.end_date) : rows)
+    }
+    setTermLoading(false)
   }
 
   async function loadResults(examId: string) {
@@ -164,12 +199,31 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
   const reportClassPossible = reportClassResults.length * Number(selectedExam?.max_score || 0)
   const reportClassAverage = reportClassPossible ? reportClassResults.reduce((sum,r) => sum + Number(r.score),0) / reportClassPossible * 100 : 0
   const student = students.find(s => s.id === selectedStudentId)
+  const selectedTerm = terms.find(t => t.id === selectedTermId)
+  const termClasses = classes.filter(c => exams.some(e => e.term_id === selectedTermId && e.class_id === c.id))
+  const termStudents = students.filter(s => s.class_id === selectedTermClassId)
+  const termExams = exams.filter(e => e.term_id === selectedTermId && e.class_id === selectedTermClassId)
+  const termExamById = new Map(termExams.map(e => [e.id, e]))
+  const termClassResults = termResults.filter(r => termExamById.has(r.examination_id) && termStudents.some(s => s.id === r.student_id))
+  const termSubjectIds = [...new Set(termClassResults.map(r => r.subject_id))]
+  const termClassAverage = termClassResults.length ? termClassResults.reduce((sum, r) => {
+    const exam = termExamById.get(r.examination_id)!
+    return sum + (Number(exam.max_score) > 0 ? Number(r.score) / Number(exam.max_score) * 100 : 0)
+  }, 0) / termClassResults.length : 0
   const selectedSchool = schools.find(s => s.id === schoolId)
 
   function printClassReports() {
     if (!selectedExam || examStudents.length === 0) return
     document.body.classList.add('printing-bulk-reports')
     const cleanup = () => document.body.classList.remove('printing-bulk-reports')
+    window.addEventListener('afterprint', cleanup, { once: true })
+    window.print()
+  }
+
+  function printTermReports() {
+    if (!selectedTerm || !selectedTermClassId || !termStudents.length || !termClassResults.length) return
+    document.body.classList.add('printing-term-reports')
+    const cleanup = () => document.body.classList.remove('printing-term-reports')
     window.addEventListener('afterprint', cleanup, { once: true })
     window.print()
   }
@@ -221,6 +275,60 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
       </>}
     </>}
     {tab === 'reports' && <>
+      <div className="student-toolbar report-mode-toolbar">
+        <button className={reportMode === 'term' ? 'primary' : 'secondary'} onClick={() => setReportMode('term')}>Full-term report</button>
+        <button className={reportMode === 'exam' ? 'primary' : 'secondary'} onClick={() => setReportMode('exam')}>Single-examination report</button>
+      </div>
+      {reportMode === 'term' && <>
+        <p className="muted">Combines recorded assessments across the selected term. Subject scores are averaged as percentages so examinations with different maximum marks can be combined fairly.</p>
+        <label className="school-picker">Select academic term<select value={selectedTermId} onChange={e => { setSelectedTermId(e.target.value); setSelectedTermClassId('') }}><option value="">Choose term</option>{terms.map(t => <option key={t.id} value={t.id}>{years.find(y => y.id === t.academic_year_id)?.name || ''} · {t.name}</option>)}</select></label>
+        {selectedTerm && <label className="school-picker">Select class<select value={selectedTermClassId} onChange={e => setSelectedTermClassId(e.target.value)}><option value="">Choose class</option>{termClasses.map(cl => <option key={cl.id} value={cl.id}>{cl.name}</option>)}</select></label>}
+        {selectedTerm && selectedTermClassId && <>
+          <div className="bulk-report-toolbar"><div><b>{classes.find(c => c.id === selectedTermClassId)?.name}</b><span>{termStudents.length} learners · {selectedTerm.name} · {termExams.length} assessments</span></div><button className="primary" onClick={printTermReports} disabled={termLoading || !termClassResults.length}><Download/> Download full-term reports</button></div>
+          <p className="muted">Each learner receives one A4 report. Attendance is included when attendance records exist for the term dates.</p>
+          {termLoading && <p className="muted">Preparing term results and attendance…</p>}
+          {!termLoading && !termExams.length && <p className="muted">No examinations are linked to this term yet.</p>}
+          {!termLoading && termExams.length > 0 && !termClassResults.length && <p className="muted">No assessment marks have been recorded for this class in the selected term yet.</p>}
+        </>}
+        {selectedTerm && selectedTermClassId && termClassResults.length > 0 && <div id="term-report-print" aria-hidden="true">
+          {termStudents.map(learner => {
+            const learnerRows = termClassResults.filter(r => r.student_id === learner.id)
+            const bySubject = termSubjectIds.map(subjectId => {
+              const rows = learnerRows.filter(r => r.subject_id === subjectId)
+              const percentages = rows.map(r => { const ex = termExamById.get(r.examination_id)!; return Number(ex.max_score) > 0 ? Number(r.score) / Number(ex.max_score) * 100 : 0 })
+              const pct = percentages.length ? percentages.reduce((a,b) => a+b,0) / percentages.length : null
+              return { subjectId, rows, pct }
+            }).filter(x => x.rows.length).sort((a,b) => (subjects.find(s => s.id === a.subjectId)?.name || '').localeCompare(subjects.find(s => s.id === b.subjectId)?.name || ''))
+            const learnerAverage = bySubject.length ? bySubject.reduce((sum, row) => sum + (row.pct || 0), 0) / bySubject.length : 0
+            const attendanceRows = termAttendance.filter(a => a.student_id === learner.id)
+            const present = attendanceRows.filter(a => a.status === 'present').length
+            const late = attendanceRows.filter(a => a.status === 'late').length
+            const absent = attendanceRows.filter(a => a.status === 'absent').length
+            const excused = attendanceRows.filter(a => a.status === 'excused').length
+            const attendanceRate = attendanceRows.length ? (present + late) / attendanceRows.length * 100 : null
+            return <article className="bulk-report-page term-report-page" key={learner.id}>
+              <header className="bulk-report-heading">
+                <div className="bulk-report-school-brand">
+                  {selectedSchool?.logo_url ? <img src={selectedSchool.logo_url} alt="School logo" /> : <div className="bulk-report-logo-placeholder">SCHOOL</div>}
+                  <div className="bulk-report-school-identity"><h1>{selectedSchool?.name || 'School Report Form'}</h1>{selectedSchool?.motto && <p className="bulk-report-motto">“{selectedSchool.motto}”</p>}
+                    <div className="bulk-report-school-contacts">{selectedSchool?.registration_number && <span><b>School No.:</b> {selectedSchool.registration_number}</span>}{(selectedSchool?.address || selectedSchool?.sub_county || selectedSchool?.county) && <span>{[selectedSchool.address, selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(', ')}</span>}{selectedSchool?.contact_phone && <span><b>Tel:</b> {selectedSchool.contact_phone}</span>}</div>
+                  </div>
+                </div>
+                <div className="bulk-report-title-band"><span>OFFICIAL ACADEMIC RECORD</span><h2>TERM LEARNER PROGRESS REPORT</h2></div>
+              </header>
+              <div className="bulk-report-meta"><span><b>Learner:</b> {fullName(learner)}</span><span><b>Admission No.:</b> {learner.admission_number}</span><span><b>Class:</b> {classes.find(c => c.id === learner.class_id)?.name || '—'}</span><span><b>Academic year:</b> {years.find(y => y.id === selectedTerm.academic_year_id)?.name || '—'}</span><span><b>Term:</b> {selectedTerm.name}</span><span><b>Assessments:</b> {termExams.length}</span></div>
+              <table className="bulk-report-table"><thead><tr><th>Learning area</th><th>Assessments</th><th>Term average</th><th>CBC level</th><th>Teacher feedback</th></tr></thead><tbody>
+                {bySubject.map(row => <tr key={row.subjectId}><td>{subjects.find(s => s.id === row.subjectId)?.name || 'Learning area'}</td><td>{row.rows.length}</td><td>{row.pct === null ? '—' : row.pct.toFixed(1) + '%'}</td><td>{row.pct === null ? '—' : grade(row.pct,100)}</td><td>{row.rows.map(r => r.remarks).filter(Boolean).slice(-1)[0] || (row.pct === null ? 'No assessment recorded.' : autoRemark(row.pct,100))}</td></tr>)}
+              </tbody></table>
+              <div className="bulk-report-summary"><span><b>Overall term average:</b> {learnerAverage.toFixed(1)}%</span><span><b>Overall CBC level:</b> {bySubject.length ? grade(learnerAverage,100) : '—'}</span><span><b>Assessments:</b> {learnerRows.length}</span></div>
+              <section className="term-attendance-summary"><b>TERM ATTENDANCE</b><span>Present: {present}</span><span>Late: {late}</span><span>Absent: {absent}</span><span>Excused: {excused}</span><span>Attendance: {attendanceRate === null ? 'No records' : attendanceRate.toFixed(1) + '%'}</span></section>
+              <div className="bulk-report-signatures"><span>Class teacher's signature: ____________________</span><span>Headteacher's signature: ____________________</span><span>Parent/Guardian: ____________________</span></div>
+              <footer>{selectedSchool?.name || 'School'} · {selectedTerm.name} Learner Progress Report</footer>
+            </article>
+          })}
+        </div>}
+      </>}
+      {reportMode === 'exam' && <>
       <label className="school-picker">Select examination<select value={selectedExamId} onChange={e => { setSelectedExamId(e.target.value); setSelectedStudentId('') }}><option value="">Select examination</option>{exams.map(ex => <option key={ex.id} value={ex.id}>{ex.name} · {classes.find(c => c.id === ex.class_id)?.name || ''}</option>)}</select></label>
       {selectedExam && <>
         <div className="bulk-report-toolbar">
@@ -303,7 +411,8 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
           </article>
         })}
       </div>}
-      {student && selectedExam && <div className="panel" id="learner-report-card">
+      </>}
+      {reportMode === 'exam' && student && selectedExam && <div className="panel" id="learner-report-card">
         <div className="panel-heading"><div><p className="kicker">{selectedSchool?.name || 'SCHOOL'} · LEARNER REPORT</p><h2>{fullName(student)}</h2><p className="muted">{student.admission_number} · {classes.find(c => c.id === student.class_id)?.name || ''}</p></div><button className="secondary" onClick={printIndividualReport}><Printer/> Print report card</button></div>
         <h3>{selectedExam.name}</h3>
         <div className="table-wrap"><table><thead><tr><th>Learning area</th><th>Score</th><th>Percentage</th><th>CBC achievement level</th><th>Teacher remarks</th></tr></thead><tbody>{reportResults.map(r => { const sub = subjects.find(x => x.id === r.subject_id); const pct = Number(r.score) / Number(selectedExam.max_score) * 100; return <tr key={r.id}><td>{sub?.name || 'Subject'}</td><td>{r.score} / {selectedExam.max_score}</td><td>{pct.toFixed(1)}%</td><td>{grade(Number(r.score),Number(selectedExam.max_score))}</td><td>{r.remarks || autoRemark(Number(r.score), Number(selectedExam.max_score))}</td></tr> })}</tbody></table></div>
@@ -332,6 +441,7 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
         <footer className="document-developer-footer">Powered by Smart Minds · Developed by Eugene Media Graphix · 0757783275 · eugeneaswani6@gmail.com</footer>
         {reportResults.length === 0 && <p className="muted">No subject marks have been recorded for this learner yet.</p>}
       </div>}
+      </>}
     </>}
     {tab !== 'exams' && (!exams.length || !subjects.length || !students.length) && <p className="muted">To use assessments, set up academic years, classes, subjects and register learners first.</p>}
   </section>
