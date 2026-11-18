@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 150" role="img" aria-labelledby="title desc">
+<title id="title">Smart Minds by Eugene Media Graphix</title><desc id="desc">Smart Minds educational brand logo with an open book icon in white and orange, white wordmark and yellow agency tagline on navy blue.</desc>
+<rect width="720" height="150" rx="12" fill="#002C66"/>
+<g transform="translate(20 18)">
+<path d="M12 18 C42 18 63 29 82 49 L82 108 C61 87 39 77 12 77 Z" fill="#fff"/>
+<path d="M88 49 C108 29 130 18 160 18 L160 77 C133 77 111 87 88 108 Z" fill="#fff"/>
+<path d="M25 8 C47 12 66 24 82 40 L82 62 C63 43 45 34 25 30 Z" fill="#FD840B"/>
+<path d="M88 40 C108 22 128 12 151 8 L151 30 C130 34 108 43 88 62 Z" fill="#fff"/>
+<path d="M85 41 L85 116" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+</g>
+<text x="205" y="77" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="800" letter-spacing="1">SMART MINDS</text>
+<path d="M205 91 H690" stroke="#fff" stroke-width="2" opacity=".9"/>
+<text x="208" y="126" fill="#FFD629" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="800" letter-spacing=".3">BY EUGENE MEDIA GRAPHIX</text>
+</svg>
