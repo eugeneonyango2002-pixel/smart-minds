@@ -305,7 +305,8 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
             const late = attendanceRows.filter(a => a.status === 'late').length
             const absent = attendanceRows.filter(a => a.status === 'absent').length
             const excused = attendanceRows.filter(a => a.status === 'excused').length
-            const attendanceRate = attendanceRows.length ? (present + late) / attendanceRows.length * 100 : null
+            const attendanceDays = attendanceRows.length - excused
+            const attendanceRate = attendanceDays > 0 ? (present + late) / attendanceDays * 100 : null
             return <article className="bulk-report-page term-report-page" key={learner.id}>
               <header className="bulk-report-heading">
                 <div className="bulk-report-school-brand">
@@ -318,10 +319,11 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
               </header>
               <div className="bulk-report-meta"><span><b>Learner:</b> {fullName(learner)}</span><span><b>Admission No.:</b> {learner.admission_number}</span><span><b>Class:</b> {classes.find(c => c.id === learner.class_id)?.name || '—'}</span><span><b>Academic year:</b> {years.find(y => y.id === selectedTerm.academic_year_id)?.name || '—'}</span><span><b>Term:</b> {selectedTerm.name}</span><span><b>Assessments:</b> {termExams.length}</span></div>
               <table className="bulk-report-table"><thead><tr><th>Learning area</th><th>Assessments</th><th>Term average</th><th>CBC level</th><th>Teacher feedback</th></tr></thead><tbody>
-                {bySubject.map(row => <tr key={row.subjectId}><td>{subjects.find(s => s.id === row.subjectId)?.name || 'Learning area'}</td><td>{row.rows.length}</td><td>{row.pct === null ? '—' : row.pct.toFixed(1) + '%'}</td><td>{row.pct === null ? '—' : grade(row.pct,100)}</td><td>{row.rows.map(r => r.remarks).filter(Boolean).slice(-1)[0] || (row.pct === null ? 'No assessment recorded.' : autoRemark(row.pct,100))}</td></tr>)}
+                {bySubject.length ? bySubject.map(row => <tr key={row.subjectId}><td>{subjects.find(s => s.id === row.subjectId)?.name || 'Learning area'}</td><td>{row.rows.length}</td><td>{row.pct === null ? '—' : row.pct.toFixed(1) + '%'}</td><td>{row.pct === null ? '—' : grade(row.pct,100)}</td><td>{row.rows.map(r => r.remarks).filter(Boolean).slice(-1)[0] || (row.pct === null ? 'No assessment recorded.' : autoRemark(row.pct,100))}</td></tr>) : <tr><td colSpan={5}>No assessment marks have been recorded for this learner in the selected term.</td></tr>}
               </tbody></table>
-              <div className="bulk-report-summary"><span><b>Overall term average:</b> {learnerAverage.toFixed(1)}%</span><span><b>Overall CBC level:</b> {bySubject.length ? grade(learnerAverage,100) : '—'}</span><span><b>Assessments:</b> {learnerRows.length}</span></div>
-              <section className="term-attendance-summary"><b>TERM ATTENDANCE</b><span>Present: {present}</span><span>Late: {late}</span><span>Absent: {absent}</span><span>Excused: {excused}</span><span>Attendance: {attendanceRate === null ? 'No records' : attendanceRate.toFixed(1) + '%'}</span></section>
+              <div className="bulk-report-summary"><span><b>Overall term average:</b> {bySubject.length ? learnerAverage.toFixed(1) + '%' : 'Not assessed'}</span><span><b>Overall CBC level:</b> {bySubject.length ? grade(learnerAverage,100) : '—'}</span><span><b>Assessments:</b> {learnerRows.length}</span></div>
+              {bySubject.length > 0 && <section className="term-overall-feedback"><b>OVERALL TEACHER FEEDBACK</b><p>{autoRemark(learnerAverage,100)}</p></section>}
+              <section className="term-attendance-summary"><b>TERM ATTENDANCE</b><span>Present: {present}</span><span>Late: {late}</span><span>Absent: {absent}</span><span>Excused: {excused}</span><span>Attendance rate (excluding excused): {attendanceRate === null ? 'No records' : attendanceRate.toFixed(1) + '%'}</span></section>
               <div className="bulk-report-signatures"><span>Class teacher's signature: ____________________</span><span>Headteacher's signature: ____________________</span><span>Parent/Guardian: ____________________</span></div>
               <footer>{selectedSchool?.name || 'School'} · {selectedTerm.name} Learner Progress Report</footer>
             </article>
