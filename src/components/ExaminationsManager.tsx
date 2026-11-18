@@ -441,7 +441,6 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
         <footer className="document-developer-footer">Powered by Smart Minds · Developed by Eugene Media Graphix · 0757783275 · eugeneaswani6@gmail.com</footer>
         {reportResults.length === 0 && <p className="muted">No subject marks have been recorded for this learner yet.</p>}
       </div>}
-      </>}
     </>}
     {tab !== 'exams' && (!exams.length || !subjects.length || !students.length) && <p className="muted">To use assessments, set up academic years, classes, subjects and register learners first.</p>}
   </section>
