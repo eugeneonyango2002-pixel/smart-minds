@@ -1012,3 +1012,78 @@ td{border-color:#EDF1F5}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
+
+
+/* Smart Minds final brand and responsive layout corrections (desktop + mobile). */
+:root{
+  --sm-orange:#FD840B;
+  --sm-orange-hover:#E87500;
+  --sm-navy:#002C66;
+  --sm-navy-deep:#001F49;
+  --sm-yellow:#FFD629;
+}
+.sidebar{background:linear-gradient(150deg,#002C66 0%,#001F49 100%)!important}
+@media(min-width:681px){
+  .sidebar{border-bottom:3px solid #FD840B}
+  .sidebar .nav{flex-shrink:0}
+  .sidebar .nav.active{background:#FD840B!important;color:#002C66!important;box-shadow:inset 0 -3px 0 #FFD629!important}
+  .sidebar .nav:hover:not(.active){background:#ffffff1c;color:#fff}
+}
+.primary,.parent-portal .primary{
+  background:#FD840B!important;color:#002C66!important;
+  border:1px solid #FD840B;box-shadow:0 4px 12px #FD840B35;
+}
+.primary:hover,.parent-portal .primary:hover{
+  background:#E87500!important;color:#fff!important;border-color:#E87500;
+}
+.nav.active{background:#FD840B!important;color:#002C66!important}
+.academic-tabs button.selected{background:#FD840B!important;color:#002C66!important}
+.stats svg,.student-count svg,.academic-panel .empty>svg{color:#FD840B!important}
+.welcome{background:linear-gradient(112deg,#002C66 0%,#063D7D 72%,#14518C 100%)}
+.welcome .kicker{color:#FFDFAF}
+.menu-toggle{background:#FFF0DF!important;color:#002C66!important}
+header h1,.panel-heading h2{color:#002C66}
+.parent-portal-header{background:linear-gradient(110deg,#001F49 0%,#002C66 78%,#06458f 100%)}
+.parent-welcome{background:linear-gradient(112deg,#002C66 0%,#063D7D 72%,#14518C 100%)}
+.parent-welcome .kicker{color:#FFDFAF}
+.parent-portal .parent-announcement{border-left-color:#FD840B}
+.parent-portal .parent-stats svg{color:#FD840B}
+.table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.layout,.main,.dashboard,.panel,.report-section{min-width:0}
+img{max-width:100%}
+button,input,select,textarea{max-width:100%}
+@media(max-width:680px){
+  .main{min-width:0;width:100%;padding-left:12px!important;padding-right:12px!important}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 0;min-height:0}
+  header>div:nth-child(2){flex:1;min-width:0}
+  header h1{font-size:17px;line-height:1.25;overflow-wrap:anywhere}
+  .header-actions{display:flex;flex:1 1 100%;width:100%;min-width:0;justify-content:flex-start;align-items:center;flex-wrap:wrap;gap:8px;margin-left:0}
+  .header-actions .secondary{max-width:100%;white-space:normal;text-align:center}
+  .header-actions .user-email{display:none}
+  .panel-heading,.academic-head,.student-toolbar,.statement-title{flex-wrap:wrap;align-items:flex-start}
+  .panel-heading>*{min-width:0}
+  .school-form,.academic-form,.student-form{grid-template-columns:minmax(0,1fr)}
+  .school-form .wide,.academic-form .wide,.student-form .wide{grid-column:auto}
+  .academic-form-actions{grid-column:auto;flex-wrap:wrap}
+  .academic-form-actions button,.statement-actions button{flex:1 1 auto}
+  .report-grid{grid-template-columns:minmax(0,1fr)}
+  .report-filters{grid-template-columns:minmax(0,1fr)}
+  .report-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .table-wrap{width:100%;max-width:100%}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats .panel{min-width:0}
+  .welcome{width:100%;overflow:hidden}
+  .parent-welcome{align-items:flex-start;gap:12px;flex-direction:column}
+}
+@media(max-width:380px){
+  .main{padding-left:9px!important;padding-right:9px!important}
+  .panel{padding:12px}
+  .stats{gap:7px}
+  .stats .panel{padding:11px;min-height:108px}
+  .stats b{font-size:19px}
+  header h1{font-size:15px}
+  .primary,.secondary{padding:10px 12px}
+}
+@media(prefers-reduced-motion:reduce){
+  html:focus-within{scroll-behavior:auto}
+}
