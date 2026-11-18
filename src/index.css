@@ -1143,3 +1143,10 @@ button,input,select,textarea{max-width:100%}
   body.printing-term-reports .term-report-page .bulk-report-signatures{margin-top:auto!important;padding-top:10mm!important;font-size:7pt!important}
   body.printing-term-reports .term-report-page footer{margin-top:4mm!important}
 }
+
+
+/* Full-term report card feedback refinement */
+.term-overall-feedback{margin:8px 0;padding:9px 11px;border-left:3px solid #FD840B;background:#fff8ef;color:#24415f;font-size:9px;line-height:1.45}
+.term-overall-feedback>b{display:block;margin-bottom:3px;color:#002C66;font-size:8px;letter-spacing:.45px}
+.term-overall-feedback p{margin:0}
+@media print{.term-overall-feedback{margin:2mm 0;padding:2mm 3mm;font-size:7pt}.term-overall-feedback>b{font-size:6.5pt}}
