@@ -36,8 +36,25 @@ begin
   ) then
     raise exception 'The appointed staff member must belong to the same school.';
   end if;
-  if new.parent_position_id = new.id then
-    raise exception 'A position cannot report to itself.';
+  if new.parent_position_id is not null then
+    if new.parent_position_id = new.id then
+      raise exception 'A position cannot report to itself.';
+    end if;
+    if exists (
+      with recursive ancestors(id, parent_position_id) as (
+        select p.id, p.parent_position_id
+        from public.school_positions p
+        where p.id = new.parent_position_id and p.school_id = new.school_id
+        union all
+        select p.id, p.parent_position_id
+        from public.school_positions p
+        join ancestors a on p.id = a.parent_position_id
+        where p.school_id = new.school_id
+      )
+      select 1 from ancestors where id = new.id
+    ) then
+      raise exception 'Reporting lines cannot create a circular management structure.';
+    end if;
   end if;
   new.updated_at := now();
   return new;
