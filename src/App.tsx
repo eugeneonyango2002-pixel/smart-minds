@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Activity, FileBarChart, Bell, ArrowRight, Building2, CalendarCheck, CalendarDays, CheckCircle2, ClipboardList, FileText, GraduationCap, LogOut, Mail, Lock, Menu, RefreshCw, ShieldCheck, Users, Wallet, XCircle } from 'lucide-react'
+import { Activity, FileBarChart, Bell, ArrowRight, Building2, CalendarCheck, CalendarDays, CheckCircle2, ClipboardList, FileText, GraduationCap, LogOut, Mail, Lock, Menu, RefreshCw, ShieldCheck, Users, Wallet, XCircle, Network } from 'lucide-react'
 import { supabase, supabaseConfigured } from './lib/supabase'
 import AcademicManager from './components/AcademicManager'
 import ClassProfiles from './components/ClassProfiles'
