@@ -1121,3 +1121,25 @@ button,input,select,textarea{max-width:100%}
 .org-footnote{font-size:10px;margin-top:18px}
 @media(max-width:760px){.org-summary{grid-template-columns:1fr 1fr}.org-roots{justify-content:flex-start}.org-branch{min-width:205px;max-width:230px}.org-children{gap:10px}.org-actions button{font-size:9px}}
 @media print{body *{visibility:hidden!important}.school-admin-panel,.school-admin-panel *{visibility:visible!important}.school-admin-panel{position:absolute!important;inset:0!important;width:100%!important;border:0!important;box-shadow:none!important}.school-admin-panel .org-toolbar,.school-admin-panel .school-picker,.school-admin-panel .org-footnote,.school-admin-panel .academic-head button,.school-admin-panel .org-actions{display:none!important}.org-chart{overflow:visible!important}.org-roots{flex-wrap:wrap;min-width:0}.org-branch{break-inside:avoid}.org-node{box-shadow:none!important}}
+
+
+/* Full-term learner report printing */
+.term-attendance-summary{display:flex;flex-wrap:wrap;gap:8px 18px;margin:9px 0;padding:9px 11px;border:1px solid #dce6f0;border-radius:6px;background:#f5f8fc;font-size:9px}
+.term-attendance-summary>b{width:100%;color:#17365f;letter-spacing:.5px}
+@media(max-width:680px){.report-mode-toolbar{flex-wrap:wrap}.report-mode-toolbar button{flex:1 1 150px}}
+@media print{
+  body.printing-term-reports{background:#fff!important}
+  body.printing-term-reports *{visibility:hidden!important}
+  body.printing-term-reports #term-report-print,
+  body.printing-term-reports #term-report-print *{visibility:visible!important}
+  body.printing-term-reports #term-report-print{display:block!important;position:absolute!important;inset:0!important;width:100%!important;margin:0!important;padding:0!important}
+  body.printing-term-reports .term-report-page{display:flex!important;flex-direction:column!important;min-height:265mm!important;height:265mm!important;box-sizing:border-box!important;padding:5mm!important;margin:0!important;border:0!important;box-shadow:none!important;break-after:page!important;page-break-after:always!important}
+  body.printing-term-reports .term-report-page:last-child{break-after:auto!important;page-break-after:auto!important}
+  body.printing-term-reports .term-report-page .bulk-report-heading{margin-bottom:5mm!important}
+  body.printing-term-reports .term-report-page .bulk-report-table{font-size:7pt!important}
+  body.printing-term-reports .term-report-page .bulk-report-table th,
+  body.printing-term-reports .term-report-page .bulk-report-table td{padding:2mm!important}
+  body.printing-term-reports .term-attendance-summary{font-size:7pt!important;margin:3mm 0!important;padding:2mm 3mm!important}
+  body.printing-term-reports .term-report-page .bulk-report-signatures{margin-top:auto!important;padding-top:10mm!important;font-size:7pt!important}
+  body.printing-term-reports .term-report-page footer{margin-top:4mm!important}
+}
