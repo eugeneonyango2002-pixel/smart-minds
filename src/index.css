@@ -1208,3 +1208,52 @@ button,input,select,textarea{max-width:100%}
   .timetable-cell-lesson span{font-size:7pt!important}
   .timetable-signature-row{margin-top:16px!important;font-size:8pt!important}
 }
+
+
+/* Final visual harmony: make the product logo readable and unify the dashboard surfaces. */
+.sidebar-brand{
+  display:flex!important;
+  align-items:center!important;
+  width:max-content;
+  max-width:100%;
+  min-height:58px;
+  padding:8px 13px!important;
+  margin:0 8px 24px!important;
+  border:1px solid #ffffff2b!important;
+  border-radius:13px!important;
+  background:#ffffff!important;
+  box-shadow:0 5px 18px #00152e30;
+}
+.sidebar-brand img{
+  display:block;
+  width:190px!important;
+  max-width:100%!important;
+  height:auto!important;
+  max-height:48px!important;
+  object-fit:contain!important;
+  object-position:left center!important;
+}
+@media(min-width:681px){
+  .sidebar-brand{margin:0 12px 0 0!important;min-height:52px;flex-shrink:0}
+}
+@media(max-width:680px){
+  .sidebar .brand.sidebar-brand{display:flex!important;width:max-content;max-width:100%;margin:0 8px 20px!important;padding:8px 12px!important}
+  .sidebar-brand img{width:180px!important;max-height:44px!important}
+}
+.main{background:#F4F7FC!important}
+.dashboard{background:transparent}
+.panel,.statement-paper,.receipt-paper{background:#FFFFFF}
+.welcome{
+  background:linear-gradient(115deg,#002C66 0%,#073D79 68%,#14518C 100%)!important;
+  border:1px solid #164d83;
+  border-radius:16px;
+  color:#FFFFFF;
+  box-shadow:0 8px 24px #002C6618;
+}
+.welcome h2{color:#FFFFFF}
+.welcome p{color:#E5EDF8}
+.welcome .kicker{color:#FFDFAF}
+header{background:transparent}
+.stats .panel{background:#FFFFFF}
+.academic-form,.student-form,.report-filters{background:#F8FAFD;border-color:#E4EAF2}
+.nav.active{background:#FD840B!important;color:#002C66!important}
