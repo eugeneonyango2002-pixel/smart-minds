@@ -1181,7 +1181,7 @@ button,input,select,textarea{max-width:100%}
 .timetable-grid{width:100%;min-width:760px;border-collapse:collapse;table-layout:fixed;background:#fff}
 .timetable-grid th,.timetable-grid td{border:1px solid #cbd7e4;padding:9px 7px;vertical-align:top;text-align:center}
 .timetable-grid thead th{background:#123d69;color:#fff;font-size:12px;letter-spacing:.5px}
-.timetable-grid .timetable-time-heading,.timetable-grid .timetable-time-cell{width:112px;background:#eaf1f8;color:#173d63;font-weight:800}
+.timetable-grid .timetable-day-heading,.timetable-grid .timetable-day-cell{width:92px;background:#eaf1f8;color:#173d63;font-weight:800}.timetable-grid .timetable-time-heading{min-width:78px;white-space:nowrap}
 .timetable-grid td{min-height:62px}
 .timetable-cell-lesson{display:grid;gap:4px;padding:7px;margin:2px 0;background:#f1f6fc;border-left:3px solid #fd840b;border-radius:5px;text-align:center;break-inside:avoid}
 .timetable-cell-lesson b{font-size:12px;color:#153b63}
@@ -1202,7 +1202,7 @@ button,input,select,textarea{max-width:100%}
   .timetable-grid{width:100%!important;min-width:0!important;table-layout:fixed!important}
   .timetable-grid th,.timetable-grid td{padding:5px 4px!important;border:1px solid #8b9bad!important}
   .timetable-grid thead th{background:#123d69!important;color:#fff!important;print-color-adjust:exact}
-  .timetable-grid .timetable-time-heading,.timetable-grid .timetable-time-cell{width:82px!important;background:#eaf1f8!important;color:#173d63!important;print-color-adjust:exact}
+  .timetable-grid .timetable-day-heading,.timetable-grid .timetable-day-cell{width:62px!important;background:#eaf1f8!important;color:#173d63!important;print-color-adjust:exact}.timetable-grid .timetable-time-heading{min-width:0!important;white-space:normal!important;font-size:7pt!important}
   .timetable-cell-lesson{padding:4px!important;margin:1px 0!important;background:#f1f6fc!important;border-left:2px solid #fd840b!important;print-color-adjust:exact}
   .timetable-cell-lesson b{font-size:8pt!important}
   .timetable-cell-lesson span{font-size:7pt!important}
