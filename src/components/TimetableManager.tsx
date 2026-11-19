@@ -172,13 +172,12 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
         })
         const chosen=candidates[0]
         if(!chosen)continue
-        const makeEntry=(target:any)=>({school_id:schoolId,academic_year_id:filterYear,term_id:targetTerm,class_id:target.class_id,stream_id:null,subject_id:chosen.subject_id,teacher_id:chosen.teacher_id,day_of_week:target.day_of_week,start_time:target.start_time,end_time:target.end_time,room:null,lesson_notes:'Automatically generated CBC/CBE whole-school timetable',subject_name:chosen.subjectName,class_name:target.class_name,period:target.period})
-        preview.push(makeEntry(slot));chosen.remaining--;chosen.dailyCounts[slot.day_of_week-1]++;usedSlots.add(slotKey(slot))
-        if(chosen.allow_double_lesson&&chosen.remaining>0&&nextSlot&&toMinutes(slot.end_time)===toMinutes(nextSlot.start_time)){
-          const dailyLimit=Math.ceil(Number(chosen.lessons_per_week)/5)
-          if(chosen.dailyCounts[slot.day_of_week-1]<dailyLimit&&teacherFree(chosen.teacher_id,[nextSlot])){
-            preview.push(makeEntry(nextSlot));chosen.remaining--;chosen.dailyCounts[slot.day_of_week-1]++;usedSlots.add(slotKey(nextSlot))
-          }
+        const dailyLimit=Math.ceil(Number(chosen.lessons_per_week)/5)
+        const makeDouble=Boolean(chosen.allow_double_lesson&&chosen.remaining>=2&&nextSlot&&toMinutes(slot.end_time)===toMinutes(nextSlot.start_time)&&chosen.dailyCounts[slot.day_of_week-1]+2<=Math.max(dailyLimit,2)&&teacherFree(chosen.teacher_id,[slot,nextSlot]))
+        const makeEntry=(target:any,isDouble=false)=>({school_id:schoolId,academic_year_id:filterYear,term_id:targetTerm,class_id:target.class_id,stream_id:null,subject_id:chosen.subject_id,teacher_id:chosen.teacher_id,day_of_week:target.day_of_week,start_time:target.start_time,end_time:target.end_time,room:null,lesson_notes:isDouble?'Automatically generated CBC/CBE double lesson':'Automatically generated CBC/CBE lesson',subject_name:chosen.subjectName,class_name:target.class_name,period:target.period})
+        preview.push(makeEntry(slot,makeDouble));chosen.remaining--;chosen.dailyCounts[slot.day_of_week-1]++;usedSlots.add(slotKey(slot))
+        if(makeDouble){
+          preview.push(makeEntry(nextSlot,true));chosen.remaining--;chosen.dailyCounts[slot.day_of_week-1]++;usedSlots.add(slotKey(nextSlot))
         }
       }
       const missing=classPlans.flatMap(plan=>plan.allocations.filter((x:any)=>x.remaining>0).map((x:any)=>plan.classRow.name+' — '+x.subjectName+': '+x.remaining))
