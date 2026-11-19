@@ -1257,3 +1257,7 @@ header{background:transparent}
 .stats .panel{background:#FFFFFF}
 .academic-form,.student-form,.report-filters{background:#F8FAFD;border-color:#E4EAF2}
 .nav.active{background:#FD840B!important;color:#002C66!important}
+
+/* Parent portal: keep the printable statement hidden until the browser print view. */
+.parent-statement-print{display:none}
+@media print{.parent-statement-print{display:block!important}}
