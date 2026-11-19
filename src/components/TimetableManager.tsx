@@ -35,7 +35,15 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
 
   useEffect(()=>{ if(!schoolId && schools.length) setSchoolId(schools[0].id) },[schools,schoolId])
   useEffect(()=>{ if(schoolId) void load() },[schoolId])
-  useEffect(()=>{\n    let active=true\n    const selected=classes.find(c=>c.id===generatorClass)\n    const code=selected?levelCode(selected):''\n    setGeneratorProfile(null)\n    if(schoolId&&code){void supabase.from('cbc_timetable_profiles').select('*').eq('school_id',schoolId).eq('level_code',code).maybeSingle().then(({data})=>{if(active)setGeneratorProfile(data||null)})}\n    return ()=>{active=false}\n  },[schoolId,generatorClass,classes])\n
+  useEffect(()=>{
+    let active=true
+    const selected=classes.find(c=>c.id===generatorClass)
+    const code=selected?levelCode(selected):''
+    setGeneratorProfile(null)
+    if(schoolId&&code){void supabase.from('cbc_timetable_profiles').select('*').eq('school_id',schoolId).eq('level_code',code).maybeSingle().then(({data})=>{if(active)setGeneratorProfile(data||null)})}
+    return ()=>{active=false}
+  },[schoolId,generatorClass,classes])
+
   async function load() {
     setError('')
     const [y,t,c,st,s,cs,staffRows,e] = await Promise.all([
@@ -167,7 +175,10 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
 
   const label=(id:string|null,rows:Row[])=>rows.find(x=>x.id===id)?.name||'—'
   const selectedClassName=classes.find(x=>x.id===form.class_id)?.name||''
-  const generatorAllocations=classSubjectLinks.filter(link=>link.class_id===generatorClass)\n  const allocatedLessons=generatorAllocations.reduce((sum,link)=>sum+Math.max(0,Number(link.lessons_per_week)||0),0)\n  const availablePeriods=generatorProfile?5*Number(generatorProfile.lessons_per_day||0):0\n    const availableSubjects=subjects.filter(subject=>classSubjectLinks.some(link=>link.class_id===form.class_id&&link.subject_id===subject.id))
+  const generatorAllocations=classSubjectLinks.filter(link=>link.class_id===generatorClass)
+  const allocatedLessons=generatorAllocations.reduce((sum,link)=>sum+Math.max(0,Number(link.lessons_per_week)||0),0)
+  const availablePeriods=generatorProfile?5*Number(generatorProfile.lessons_per_day||0):0
+    const availableSubjects=subjects.filter(subject=>classSubjectLinks.some(link=>link.class_id===form.class_id&&link.subject_id===subject.id))
   return <section className="panel student-panel timetable-manager">
     <div className="academic-head"><div><p className="kicker">LESSON PLANNING</p><h2>School timetable</h2><p className="muted">Schedule lessons by class, stream, subject, teacher and weekday.</p></div><button className="secondary" onClick={()=>void load()}><RefreshCw/> Refresh</button></div>
     <label className="school-picker">Select school<select value={schoolId} onChange={e=>setSchoolId(e.target.value)}>{schools.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
