@@ -115,13 +115,12 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
       if(requested>slots.length)throw new Error('This class requires '+requested+' lessons per week, but the current timetable profile provides '+slots.length+' periods. Adjust the allocations or timetable profile.')
       const occupied=(existingResult.data||[]).filter((x:any)=>x.class_id!==generatorClass&&(filterTerm==='all'||(filterTerm==='none'?!x.term_id:x.term_id===filterTerm)))
       const preview:any[]=[]
-      const usedDays=new Set<string>()
       for(const slot of slots){
         if(!allocations.some((x:any)=>x.remaining>0))break
-        const chosen=allocations.find((x:any)=>x.remaining>0&&!usedDays.has(x.id+'-'+slot.day_of_week)&&(!x.teacher_id||!occupied.some((o:any)=>o.teacher_id===x.teacher_id&&o.day_of_week===slot.day_of_week&&o.start_time<slot.end_time&&o.end_time>slot.start_time))&&(!x.teacher_id||!preview.some((o:any)=>o.teacher_id===x.teacher_id&&o.day_of_week===slot.day_of_week&&o.start_time<slot.end_time&&o.end_time>slot.start_time)))
+        const chosen=allocations.find((x:any)=>{const sameDay=preview.filter((o:any)=>o.subject_id===x.subject_id&&o.day_of_week===slot.day_of_week);const dailyLimit=Math.ceil(Number(x.lessons_per_week)/5);const separated=Boolean(x.allow_double_lesson)||!sameDay.some((o:any)=>Math.abs(Number(o.period)-Number(slot.period))===1);return x.remaining>0&&sameDay.length<dailyLimit&&separated&&(!x.teacher_id||!occupied.some((o:any)=>o.teacher_id===x.teacher_id&&o.day_of_week===slot.day_of_week&&o.start_time<slot.end_time&&o.end_time>slot.start_time))&&(!x.teacher_id||!preview.some((o:any)=>o.teacher_id===x.teacher_id&&o.day_of_week===slot.day_of_week&&o.start_time<slot.end_time&&o.end_time>slot.start_time))})
         if(!chosen)continue
         preview.push({school_id:schoolId,academic_year_id:filterYear,term_id:filterTerm==='all'||filterTerm==='none'?null:filterTerm,class_id:generatorClass,stream_id:null,subject_id:chosen.subject_id,teacher_id:chosen.teacher_id||null,day_of_week:slot.day_of_week,start_time:slot.start_time,end_time:slot.end_time,room:null,lesson_notes:'Automatically generated weekly lesson',subject_name:chosen.subjectName,period:slot.period})
-        chosen.remaining--;usedDays.add(chosen.id+'-'+slot.day_of_week)
+        chosen.remaining--
       }
       const missing=allocations.filter((x:any)=>x.remaining>0).map((x:any)=>x.subjectName+': '+x.remaining)
       if(missing.length)throw new Error('Could not place every lesson without conflicts. Unscheduled lessons: '+missing.join(', ')+'. Check teacher assignments and timetable capacity.')
