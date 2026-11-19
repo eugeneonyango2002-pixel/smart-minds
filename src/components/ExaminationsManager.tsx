@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { BookOpen, ClipboardList, Download, Plus, Printer, RefreshCw, Save, XCircle, CheckCircle2, Trash2 } from 'lucide-react'
+import { BookOpen, ClipboardList, Download, Plus, Printer, RefreshCw, Save, XCircle, CheckCircle2, Trash2, Send } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type School = { id: string; name: string; motto?: string | null; logo_url?: string | null; registration_number?: string | null; address?: string | null; county?: string | null; sub_county?: string | null; contact_phone?: string | null; contact_email?: string | null }
@@ -26,7 +26,7 @@ function autoRemark(score: number, max: number) {
 }
 const fullName = (s: Learner) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(' ')
 
-export default function ExaminationsManager({ schools, canDelete = false }: { schools: School[]; canDelete?: boolean }) {
+export default function ExaminationsManager({ schools, canDelete = false, canPublish = false }: { schools: School[]; canDelete?: boolean; canPublish?: boolean }) {
   const [schoolId, setSchoolId] = useState('')
   const [years, setYears] = useState<Row[]>([])
   const [terms, setTerms] = useState<Row[]>([])
@@ -74,6 +74,23 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
     setYears(y.data || []); setTerms(t.data || []); setClasses(c.data || [])
     setSubjects(s.data || []); setClassSubjectLinks(cs.data || []); setStudents((st.data || []) as Learner[])
     if (!form.academic_year_id && y.data?.[0]) setForm(v => ({ ...v, academic_year_id: y.data![0].id }))
+  }
+
+  async function publishExamination(exam: Exam) {
+    if (!schoolId || !canPublish || exam.status === 'published') return
+    const { data, error: countError } = await supabase.from('exam_results').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('examination_id', exam.id)
+    if (countError) { setError(countError.message); return }
+    const markCount = data?.length ?? 0
+    if (!markCount) { setError('This examination has no recorded marks. Enter and verify marks before publishing.'); return }
+    if (!window.confirm('Publish "' + exam.name + '" for ' + (classes.find(c => c.id === exam.class_id)?.name || 'this class') + '? ' + markCount + ' recorded marks will become visible to linked parents.')) return
+    setBusy(true); setError(''); setNotice('')
+    const { error } = await supabase.from('examinations').update({ status: 'published', updated_at: new Date().toISOString() }).eq('id', exam.id).eq('school_id', schoolId)
+    if (error) setError(error.message)
+    else {
+      setExams(current => current.map(item => item.id === exam.id ? { ...item, status: 'published' } : item))
+      setNotice('Examination published. Linked parents can now view the recorded results.')
+    }
+    setBusy(false)
   }
 
   async function deleteExamination(exam: Exam) {
@@ -257,7 +274,7 @@ export default function ExaminationsManager({ schools, canDelete = false }: { sc
         <button className="primary wide" disabled={busy || !schoolId || !years.length || !classes.length}>{busy ? 'Saving…' : 'Create examination'}</button>
       </form>
       <h3>Examinations created</h3>
-      {exams.length === 0 ? <div className="empty"><ClipboardList/><h3>No examinations yet</h3><p>Create the first examination above.</p></div> : <div className="table-wrap"><table><thead><tr><th>Examination</th><th>Year / term</th><th>Class</th><th>Date</th><th>Maximum</th><th>Marks entered</th><th>Action</th></tr></thead><tbody>{exams.map(ex => <tr key={ex.id}><td><b>{ex.name}</b></td><td>{years.find(y => y.id === ex.academic_year_id)?.name || '—'} / {terms.find(t => t.id === ex.term_id)?.name || '—'}</td><td>{classes.find(c => c.id === ex.class_id)?.name || '—'}</td><td>{ex.exam_date || '—'}</td><td>{ex.max_score}</td><td>{results.length && ex.id === selectedExamId ? results.length : '—'}</td><td><div className="actions"><button className="secondary" onClick={() => { setSelectedExamId(ex.id); setTab('marks') }}>Open</button>{canDelete && <button className="secondary" disabled={busy} onClick={() => void deleteExamination(ex)}><Trash2 /> Delete</button>}</div></td></tr>)}</tbody></table></div>}
+      {exams.length === 0 ? <div className="empty"><ClipboardList/><h3>No examinations yet</h3><p>Create the first examination above.</p></div> : <div className="table-wrap"><table><thead><tr><th>Examination</th><th>Year / term</th><th>Class</th><th>Date</th><th>Maximum</th><th>Marks entered</th><th>Action</th></tr></thead><tbody>{exams.map(ex => <tr key={ex.id}><td><b>{ex.name}</b><div><span className="muted">{ex.status === 'published' ? 'Published to parents' : 'Draft · not visible to parents'}</span></div></td><td>{years.find(y => y.id === ex.academic_year_id)?.name || '—'} / {terms.find(t => t.id === ex.term_id)?.name || '—'}</td><td>{classes.find(c => c.id === ex.class_id)?.name || '—'}</td><td>{ex.exam_date || '—'}</td><td>{ex.max_score}</td><td>{results.length && ex.id === selectedExamId ? results.length : '—'}</td><td><div className="actions"><button className="secondary" onClick={() => { setSelectedExamId(ex.id); setTab('marks') }}>Open</button>{canPublish && <button className={ex.status === 'published' ? 'secondary' : 'primary'} disabled={busy || ex.status === 'published'} onClick={() => void publishExamination(ex)}><Send /> {ex.status === 'published' ? 'Published' : 'Publish to parents'}</button>}{canDelete && <button className="secondary" disabled={busy} onClick={() => void deleteExamination(ex)}><Trash2 /> Delete</button>}</div></td></tr>)}</tbody></table></div>}
     </>}
     {tab === 'marks' && <>
       <label className="school-picker">Select examination<select value={selectedExamId} onChange={e => setSelectedExamId(e.target.value)}><option value="">Select examination</option>{exams.map(ex => <option key={ex.id} value={ex.id}>{ex.name} · {classes.find(c => c.id === ex.class_id)?.name || ''}</option>)}</select></label>
