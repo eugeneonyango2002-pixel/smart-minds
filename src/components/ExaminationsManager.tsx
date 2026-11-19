@@ -78,11 +78,11 @@ export default function ExaminationsManager({ schools, canDelete = false, canPub
 
   async function publishExamination(exam: Exam) {
     if (!schoolId || !canPublish || exam.status === 'published') return
-    const { data, error: countError } = await supabase.from('exam_results').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('examination_id', exam.id)
+    const { count: markCount, error: countError } = await supabase.from('exam_results').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('examination_id', exam.id)
     if (countError) { setError(countError.message); return }
-    const markCount = data?.length ?? 0
-    if (!markCount) { setError('This examination has no recorded marks. Enter and verify marks before publishing.'); return }
-    if (!window.confirm('Publish "' + exam.name + '" for ' + (classes.find(c => c.id === exam.class_id)?.name || 'this class') + '? ' + markCount + ' recorded marks will become visible to linked parents.')) return
+    const recordedMarks = markCount ?? 0
+    if (!recordedMarks) { setError('This examination has no recorded marks. Enter and verify marks before publishing.'); return }
+    if (!window.confirm('Publish "' + exam.name + '" for ' + (classes.find(c => c.id === exam.class_id)?.name || 'this class') + '? ' + recordedMarks + ' recorded marks will become visible to linked parents.')) return
     setBusy(true); setError(''); setNotice('')
     const { error } = await supabase.from('examinations').update({ status: 'published', updated_at: new Date().toISOString() }).eq('id', exam.id).eq('school_id', schoolId)
     if (error) setError(error.message)
