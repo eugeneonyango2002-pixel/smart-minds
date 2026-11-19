@@ -66,6 +66,15 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
   const toClock=(value:number)=>String(Math.floor(value/60)).padStart(2,'0')+':'+String(value%60).padStart(2,'0')
   const levelCode=(c:Row)=>{const n=String(c.name||'');if(/^PP/.test(n))return 'pre_primary';const g=Number(n.match(/Grade (\d+)/)?.[1]||0);return g>=1&&g<=3?'lower_primary':g>=4&&g<=6?'upper_primary':g>=7&&g<=9?'junior_school':''}
 
+  async function saveClassAllocation(linkId:string,lessons:number,teacherId:string){
+    setGenerationError('')
+    if(!Number.isInteger(lessons)||lessons<1||lessons>15){setGenerationError('Weekly lessons must be between 1 and 15.');return}
+    const {error}=await supabase.from('class_subjects').update({lessons_per_week:lessons,teacher_id:teacherId||null}).eq('id',linkId).eq('school_id',schoolId)
+    if(error){setGenerationError(error.message);return}
+    setClassSubjectLinks(rows=>rows.map(row=>row.id===linkId?{...row,lessons_per_week:lessons,teacher_id:teacherId||null}:row))
+    setNotice('Subject allocation and teacher assignment saved.')
+  }
+
   async function buildAutomaticPreview(){
     setGenerationError('');setGenerationPreview([])
     if(!schoolId||!filterYear||!generatorClass){setGenerationError('Select a school, academic year and class first.');return}
@@ -180,6 +189,7 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
       <button className="primary wide" disabled={busy||!years.length||!classes.length||!subjects.length}>{busy?'Saving…':'Add lesson to timetable'}</button>
     </form>
     <div className="setup-automatic"><div><b>Automatic timetable generator</b><p>Build a weekly CBC/CBE timetable from each class's subject allocations and assigned teachers. Teacher clashes are checked before saving.</p></div><div style={{display:'grid',gap:'.5rem',minWidth:'min(100%,260px)'}}><label>Class<select value={generatorClass} onChange={e=>{setGeneratorClass(e.target.value);setGenerationPreview([]);setGenerationError('')}}>{classes.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><button className="secondary" type="button" disabled={generationBusy||!filterYear||!generatorClass} onClick={()=>void buildAutomaticPreview()}>{generationBusy?'Preparing…':'Generate preview'}</button></div></div>
+    {generatorClass&&<div className="panel" style={{marginTop:12}}><h3>Weekly subject allocations and teachers</h3><p className="muted">Set how many lessons each subject needs per week and assign its teacher before generating the timetable.</p><div className="table-wrap"><table><thead><tr><th>Subject</th><th>Lessons per week</th><th>Assigned teacher</th><th>Save</th></tr></thead><tbody>{classSubjectLinks.filter(link=>link.class_id===generatorClass).map(link=><tr key={link.id}><td>{label(link.subject_id,subjects)}</td><td><input aria-label="Lessons per week" type="number" min="1" max="15" defaultValue={link.lessons_per_week||''} id={'lessons-'+link.id}/></td><td><select aria-label="Assigned teacher" defaultValue={link.teacher_id||''} id={'teacher-'+link.id}><option value="">Not assigned</option>{staff.filter(x=>x.staff_role==='teacher').map(x=><option key={x.id} value={x.id}>{staffName(x)}</option>)}</select></td><td><button className="secondary" type="button" onClick={()=>{const lessons=Number((document.getElementById('lessons-'+link.id) as HTMLInputElement)?.value);const teacher=(document.getElementById('teacher-'+link.id) as HTMLSelectElement)?.value||'';void saveClassAllocation(link.id,lessons,teacher)}}>Save</button></td></tr>)}</tbody></table></div>{classSubjectLinks.filter(link=>link.class_id===generatorClass).length===0&&<p className="muted">No subjects are linked to this class yet. Add class subjects in Academic structure first.</p>}</div>}
     {generationError&&<p className="alert error"><XCircle/>{generationError}</p>}
     {generationPreview.length>0&&<div className="panel" style={{marginTop:12}}><div className="academic-head"><div><h3>Generated timetable preview</h3><p className="muted">{generationPreview.length} lessons. Review before saving.</p></div><button className="primary" type="button" disabled={generationBusy} onClick={()=>void saveGeneratedTimetable()}>{generationBusy?'Saving…':'Save timetable'}</button></div><div className="table-wrap"><table><thead><tr><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th></tr></thead><tbody>{generationPreview.map((x,i)=><tr key={i}><td>{days.find(d=>d.id===x.day_of_week)?.name}</td><td>{x.start_time}–{x.end_time}</td><td>{x.subject_name}</td><td>{staffName(staff.find(t=>t.id===x.teacher_id)||{})||'Not assigned'}</td></tr>)}</tbody></table></div></div>}
     <h3>Weekly timetable</h3>
