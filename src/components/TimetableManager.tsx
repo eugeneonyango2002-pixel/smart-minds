@@ -18,6 +18,10 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
   const [streams,setStreams] = useState<Row[]>([])
   const [subjects,setSubjects] = useState<Row[]>([])
   const [classSubjectLinks,setClassSubjectLinks] = useState<Row[]>([])
+  const [generatorClass,setGeneratorClass] = useState('')
+  const [generationPreview,setGenerationPreview] = useState<any[]>([])
+  const [generationError,setGenerationError] = useState('')
+  const [generationBusy,setGenerationBusy] = useState(false)
   const [staff,setStaff] = useState<Row[]>([])
   const [entries,setEntries] = useState<Entry[]>([])
   const [form,setForm] = useState(blank)
@@ -36,16 +40,17 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
     const [y,t,c,st,s,cs,staffRows,e] = await Promise.all([
       supabase.from('academic_years').select('id,name').eq('school_id',schoolId).order('start_date'),
       supabase.from('terms').select('id,name,academic_year_id').eq('school_id',schoolId).order('start_date'),
-      supabase.from('classes').select('id,name').eq('school_id',schoolId).order('sort_order'),
+      supabase.from('classes').select('id,name,level').eq('school_id',schoolId).order('sort_order'),
       supabase.from('streams').select('*').eq('school_id',schoolId).order('name'),
       supabase.from('subjects').select('id,name,is_examinable').eq('school_id',schoolId).order('name'),
-      supabase.from('class_subjects').select('id,class_id,subject_id').eq('school_id',schoolId),
+      supabase.from('class_subjects').select('id,class_id,subject_id,lessons_per_week,teacher_id,allow_double_lesson').eq('school_id',schoolId),
       supabase.from('staff').select('id,first_name,middle_name,last_name,staff_role,status').eq('school_id',schoolId).eq('status','active').order('last_name'),
       supabase.from('timetable_entries').select('*').eq('school_id',schoolId).order('day_of_week').order('start_time')
     ])
     const failed=[y,t,c,st,s,cs,staffRows,e].find(x=>x.error)
     if(failed?.error){setError(failed.error.message);return}
     setYears(y.data||[]);setTerms(t.data||[]);setClasses(c.data||[]);setStreams(st.data||[])
+    if(!generatorClass && c.data?.[0]) setGeneratorClass(c.data[0].id)
     setSubjects(s.data||[]);setClassSubjectLinks(cs.data||[]);setStaff(staffRows.data||[]);setEntries((e.data||[]) as Entry[])
     if(!form.academic_year_id && y.data?.[0]) setForm(v=>({...v,academic_year_id:y.data![0].id}))
     if(!filterYear && y.data?.[0]) setFilterYear(y.data[0].id)
@@ -56,6 +61,77 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
     (filterClass==='all' || e.class_id===filterClass) &&
     (filterTerm==='all' || (filterTerm==='none' ? !e.term_id : e.term_id===filterTerm))
   ),[entries,filterYear,filterClass,filterTerm])
+
+  const toMinutes=(time:string)=>{const [h,m]=time.slice(0,5).split(':').map(Number);return h*60+m}
+  const toClock=(value:number)=>String(Math.floor(value/60)).padStart(2,'0')+':'+String(value%60).padStart(2,'0')
+  const levelCode=(c:Row)=>{const n=String(c.name||'');if(/^PP/.test(n))return 'pre_primary';const g=Number(n.match(/Grade (\d+)/)?.[1]||0);return g>=1&&g<=3?'lower_primary':g>=4&&g<=6?'upper_primary':g>=7&&g<=9?'junior_school':''}
+
+  async function buildAutomaticPreview(){
+    setGenerationError('');setGenerationPreview([])
+    if(!schoolId||!filterYear||!generatorClass){setGenerationError('Select a school, academic year and class first.');return}
+    setGenerationBusy(true)
+    try{
+      const selected=classes.find(c=>c.id===generatorClass)
+      const code=selected?levelCode(selected):''
+      if(!code)throw new Error('Automatic CBC timetable generation currently supports PP1–Grade 9. Senior-school timetable setup will be added separately.')
+      const results=await Promise.all([
+        supabase.from('cbc_timetable_profiles').select('*').eq('school_id',schoolId).eq('level_code',code).maybeSingle(),
+        supabase.from('class_subjects').select('id,class_id,subject_id,lessons_per_week,teacher_id,allow_double_lesson').eq('school_id',schoolId).eq('class_id',generatorClass),
+        supabase.from('subjects').select('id,name').eq('school_id',schoolId),
+        supabase.from('timetable_entries').select('id,teacher_id,day_of_week,start_time,end_time,class_id,term_id').eq('school_id',schoolId).eq('academic_year_id',filterYear)
+      ])
+      const [profileResult,linkResult,subjectResult,existingResult]=results
+      if(profileResult.error)throw profileResult.error
+      if(linkResult.error)throw linkResult.error
+      if(subjectResult.error)throw subjectResult.error
+      if(existingResult.error)throw existingResult.error
+      const profile=profileResult.data
+      if(!profile)throw new Error('No timetable profile exists for this education level. Run the CBC timetable setup migration first.')
+      const allocations=(linkResult.data||[]).filter((x:any)=>Number(x.lessons_per_week)>0).map((x:any)=>({...x,subjectName:(subjectResult.data||[]).find((s:any)=>s.id===x.subject_id)?.name||'Subject',remaining:Number(x.lessons_per_week)})).sort((a:any,b:any)=>b.remaining-a.remaining)
+      if(!allocations.length)throw new Error('No weekly lesson allocations found. Set lessons per week for this class in the academic subject setup first.')
+      const requested=allocations.reduce((sum:number,x:any)=>sum+x.remaining,0)
+      const slots:any[]=[]
+      for(let day=1;day<=5;day++){
+        let cursor=toMinutes(profile.lesson_start_time)
+        for(let period=1;period<=Number(profile.lessons_per_day);period++){
+          const start=cursor,end=start+Number(profile.lesson_duration_minutes)
+          if(end>toMinutes(profile.school_end_time))break
+          slots.push({day_of_week:day,start_time:toClock(start),end_time:toClock(end),period})
+          cursor=end
+          if(period===Number(profile.first_break_after_period))cursor+=Number(profile.first_break_minutes)
+          if(period===Number(profile.second_break_after_period))cursor+=Number(profile.second_break_minutes)
+          if(profile.lunch_after_period&&period===Number(profile.lunch_after_period))cursor+=Number(profile.lunch_minutes)
+        }
+      }
+      if(requested>slots.length)throw new Error('This class requires '+requested+' lessons per week, but the current timetable profile provides '+slots.length+' periods. Adjust the allocations or timetable profile.')
+      const occupied=(existingResult.data||[]).filter((x:any)=>x.class_id!==generatorClass&&(filterTerm==='all'||(filterTerm==='none'?!x.term_id:x.term_id===filterTerm)))
+      const preview:any[]=[]
+      const usedDays=new Set<string>()
+      for(const slot of slots){
+        if(!allocations.some((x:any)=>x.remaining>0))break
+        const chosen=allocations.find((x:any)=>x.remaining>0&&!usedDays.has(x.id+'-'+slot.day_of_week)&&(!x.teacher_id||!occupied.some((o:any)=>o.teacher_id===x.teacher_id&&o.day_of_week===slot.day_of_week&&o.start_time<slot.end_time&&o.end_time>slot.start_time))&&(!x.teacher_id||!preview.some((o:any)=>o.teacher_id===x.teacher_id&&o.day_of_week===slot.day_of_week&&o.start_time<slot.end_time&&o.end_time>slot.start_time)))
+        if(!chosen)continue
+        preview.push({school_id:schoolId,academic_year_id:filterYear,term_id:filterTerm==='all'||filterTerm==='none'?null:filterTerm,class_id:generatorClass,stream_id:null,subject_id:chosen.subject_id,teacher_id:chosen.teacher_id||null,day_of_week:slot.day_of_week,start_time:slot.start_time,end_time:slot.end_time,room:null,lesson_notes:'Automatically generated weekly lesson',subject_name:chosen.subjectName,period:slot.period})
+        chosen.remaining--;usedDays.add(chosen.id+'-'+slot.day_of_week)
+      }
+      const missing=allocations.filter((x:any)=>x.remaining>0).map((x:any)=>x.subjectName+': '+x.remaining)
+      if(missing.length)throw new Error('Could not place every lesson without conflicts. Unscheduled lessons: '+missing.join(', ')+'. Check teacher assignments and timetable capacity.')
+      setGenerationPreview(preview)
+    }catch(e){setGenerationError(e instanceof Error?e.message:'Could not generate a timetable preview.')}
+    finally{setGenerationBusy(false)}
+  }
+
+  async function saveGeneratedTimetable(){
+    if(!generationPreview.length)return
+    const current=entries.filter(x=>x.academic_year_id===filterYear&&x.class_id===generatorClass&&(filterTerm==='all'||(filterTerm==='none'?!x.term_id:x.term_id===filterTerm)))
+    if(current.length){setGenerationError('This class already has lessons for the selected year/term. Remove those lessons first. Existing lessons have not been changed.');return}
+    setGenerationBusy(true);setGenerationError('')
+    const payload=generationPreview.map(({subject_name,period,...entry})=>entry)
+    const {error}=await supabase.from('timetable_entries').insert(payload)
+    if(error)setGenerationError(error.message)
+    else{setNotice('Automatic timetable created with '+payload.length+' lessons.');setGenerationPreview([]);await load()}
+    setGenerationBusy(false)
+  }
 
   async function save(e:FormEvent) {
     e.preventDefault()
@@ -83,7 +159,7 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
   const label=(id:string|null,rows:Row[])=>rows.find(x=>x.id===id)?.name||'—'
   const selectedClassName=classes.find(x=>x.id===form.class_id)?.name||''
   const isSupportedCBCClass=/^(PP1|PP2|Grade [1-9])$/.test(selectedClassName)
-  const availableSubjects=isSupportedCBCClass?subjects.filter(subject=>classSubjectLinks.some(link=>link.class_id===form.class_id&&link.subject_id===subject.id)):[]
+  const availableSubjects=subjects.filter(subject=>classSubjectLinks.some(link=>link.class_id===form.class_id&&link.subject_id===subject.id))
   return <section className="panel student-panel">
     <div className="academic-head"><div><p className="kicker">LESSON PLANNING</p><h2>School timetable</h2><p className="muted">Schedule lessons by class, stream, subject, teacher and weekday.</p></div><button className="secondary" onClick={()=>void load()}><RefreshCw/> Refresh</button></div>
     <label className="school-picker">Select school<select value={schoolId} onChange={e=>setSchoolId(e.target.value)}>{schools.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
@@ -103,6 +179,9 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
       <label className="wide">Lesson notes<input value={form.lesson_notes} onChange={e=>setForm(v=>({...v,lesson_notes:e.target.value}))} placeholder="Optional notes"/></label>
       <button className="primary wide" disabled={busy||!years.length||!classes.length||!subjects.length}>{busy?'Saving…':'Add lesson to timetable'}</button>
     </form>
+    <div className="setup-automatic"><div><b>Automatic timetable generator</b><p>Build a weekly CBC/CBE timetable from each class's subject allocations and assigned teachers. Teacher clashes are checked before saving.</p></div><div style={{display:'grid',gap:'.5rem',minWidth:'min(100%,260px)'}}><label>Class<select value={generatorClass} onChange={e=>{setGeneratorClass(e.target.value);setGenerationPreview([]);setGenerationError('')}}>{classes.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><button className="secondary" type="button" disabled={generationBusy||!filterYear||!generatorClass} onClick={()=>void buildAutomaticPreview()}>{generationBusy?'Preparing…':'Generate preview'}</button></div></div>
+    {generationError&&<p className="alert error"><XCircle/>{generationError}</p>}
+    {generationPreview.length>0&&<div className="panel" style={{marginTop:12}}><div className="academic-head"><div><h3>Generated timetable preview</h3><p className="muted">{generationPreview.length} lessons. Review before saving.</p></div><button className="primary" type="button" disabled={generationBusy} onClick={()=>void saveGeneratedTimetable()}>{generationBusy?'Saving…':'Save timetable'}</button></div><div className="table-wrap"><table><thead><tr><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th></tr></thead><tbody>{generationPreview.map((x,i)=><tr key={i}><td>{days.find(d=>d.id===x.day_of_week)?.name}</td><td>{x.start_time}–{x.end_time}</td><td>{x.subject_name}</td><td>{staffName(staff.find(t=>t.id===x.teacher_id)||{})||'Not assigned'}</td></tr>)}</tbody></table></div></div>}
     <h3>Weekly timetable</h3>
     <div className="student-toolbar">
       <label>Academic year<select value={filterYear} onChange={e=>setFilterYear(e.target.value)}><option value="">All years</option>{years.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
