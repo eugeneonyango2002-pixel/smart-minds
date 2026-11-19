@@ -23,6 +23,7 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
   const [exams, setExams] = useState<Exam[]>([])
   const [results, setResults] = useState<any[]>([])
   const [classes, setClasses] = useState<{id:string;name:string}[]>([])
+  const [subjects, setSubjects] = useState<{id:string;name:string}[]>([])
   const [schoolName, setSchoolName] = useState('School')
   const [selectedId, setSelectedId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -33,11 +34,12 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
     let cancelled = false
     async function load() {
       setLoading(true); setError('')
-      const [schoolResult, linkResult, announcementResult, notificationResult] = await Promise.all([
+      const [schoolResult, linkResult, announcementResult, notificationResult, subjectResult] = await Promise.all([
         supabase.from('schools').select('name').eq('id', account.school_id).maybeSingle(),
         supabase.from('parent_students').select('student_id').eq('parent_account_id', account.id),
         supabase.from('school_announcements').select('id,title,message,publish_at').eq('school_id', account.school_id).eq('status','published').lte('publish_at', new Date().toISOString()).order('publish_at',{ascending:false}).limit(30),
-        supabase.from('parent_notifications').select('id,title,message,notification_type,created_at,read_at').eq('parent_account_id',account.id).order('created_at',{ascending:false}).limit(50)
+        supabase.from('parent_notifications').select('id,title,message,notification_type,created_at,read_at').eq('parent_account_id',account.id).order('created_at',{ascending:false}).limit(50),
+        supabase.from('subjects').select('id,name').eq('school_id',account.school_id)
       ])
       if (linkResult.error) { if (!cancelled) setError(linkResult.error.message); setLoading(false); return }
       const ids = (linkResult.data || []).map(x => x.student_id)
@@ -49,7 +51,7 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
         supabase.from('classes').select('id,name').eq('school_id', account.school_id),
         supabase.from('academic_years').select('id,name,is_current').eq('school_id', account.school_id).eq('is_current', true).maybeSingle()
       ])
-      const failedRead = [schoolResult, announcementResult, notificationResult, studentResult, attendanceResult, paymentResult, classResult, yearResult].find(x => x.error)
+      const failedRead = [schoolResult, announcementResult, notificationResult, subjectResult, studentResult, attendanceResult, paymentResult, classResult, yearResult].find(x => x.error)
       if (failedRead?.error) { if (!cancelled) setError(failedRead.error.message); setLoading(false); return }
       const kids = (studentResult.data || []) as Learner[]
       const classIds = [...new Set(kids.map(x => x.class_id).filter(Boolean))] as string[]
@@ -72,7 +74,7 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
         setSchoolName(schoolResult.data?.name || 'School')
         setAnnouncements((announcementResult.data || []) as Announcement[]); setNotifications((notificationResult.data || []) as ParentNotification[])
         setLearners(kids); setAttendance((attendanceResult.data || []) as Attendance[])
-        setPayments((paymentResult.data || []) as Payment[]); setClasses(classResult.data || [])
+        setPayments((paymentResult.data || []) as Payment[]); setClasses(classResult.data || []); setSubjects(subjectResult.data || [])
         setFeeCharges(chargeRows); setCurrentYear((yearResult.data || null) as AcademicYear | null)
         setExams(examRows); setResults(resultRows)
         setSelectedId(current => kids.some(x=>x.id===current) ? current : kids[0]?.id || '')
@@ -116,7 +118,7 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
           {announcements.length ? <div className="parent-announcement-list">{announcements.map(item=><article className="parent-announcement" key={item.id}><small>{new Date(item.publish_at).toLocaleString('en-KE')}</small><h3>{item.title}</h3><p>{item.message}</p></article>)}</div> : <p className="muted">There are no new school announcements.</p>}
         </section>
         <section className="panel parent-section"><div className="panel-heading"><h2><CalendarCheck/> Attendance</h2><span>Latest 100 records</span></div>{learnerAttendance.length ? <div className="table-wrap"><table><thead><tr><th>Date</th><th>Status</th></tr></thead><tbody>{learnerAttendance.map(x=><tr key={x.id}><td>{new Date(x.attendance_date+'T00:00:00').toLocaleDateString()}</td><td>{x.status}</td></tr>)}</tbody></table></div>:<p className="muted">No attendance records are available yet.</p>}</section>
-        <section className="panel parent-section"><div className="panel-heading"><h2><BookOpen/> Academic results</h2><span>Results released by the school</span></div>{learnerResults.length ? <div className="table-wrap"><table><thead><tr><th>Examination</th><th>Date</th><th>Learning area ID</th><th>Score</th><th>Teacher remarks</th></tr></thead><tbody>{learnerResults.map(x=>{const ex=exams.find(e=>e.id===x.examination_id);return <tr key={x.id}><td>{ex?.name||'Published exam'}</td><td>{ex?.exam_date?new Date(ex.exam_date+'T00:00:00').toLocaleDateString():'—'}</td><td>{x.subject_id}</td><td>{x.score ?? '—'}</td><td>{x.remarks||'—'}</td></tr>})}</tbody></table></div>:<p className="muted">No examination results have been released for this learner yet. The school must publish the examination before parents can view the marks.</p>}</section>
+        <section className="panel parent-section"><div className="panel-heading"><h2><BookOpen/> Academic results</h2><span>Results released by the school</span></div>{learnerResults.length ? <div className="table-wrap"><table><thead><tr><th>Examination</th><th>Date</th><th>Learning area</th><th>Score</th><th>Teacher remarks</th></tr></thead><tbody>{learnerResults.map(x=>{const ex=exams.find(e=>e.id===x.examination_id);return <tr key={x.id}><td>{ex?.name||'Published exam'}</td><td>{ex?.exam_date?new Date(ex.exam_date+'T00:00:00').toLocaleDateString():'—'}</td><td>{subjects.find(subject=>subject.id===x.subject_id)?.name || 'Learning area unavailable'}</td><td>{x.score ?? '—'}</td><td>{x.remarks||'—'}</td></tr>})}</tbody></table></div>:<p className="muted">No examination results have been released for this learner yet. The school must publish the examination before parents can view the marks.</p>}</section>
         <section className="panel parent-section"><div className="panel-heading"><h2><Wallet/> Fee balance</h2><span>{currentYear?.name || 'Current academic year'}</span></div>
           {currentYear ? <><div className="parent-fee-totals"><div><span>Fees charged</span><b>{money(totalCharged)}</b></div><div><span>Paid</span><b>{money(feeRows.reduce((sum,x)=>sum+x.paid,0))}</b></div><div><span>Outstanding balance</span><b>{money(totalOutstanding)}</b></div></div>
           {feeRows.length ? <div className="table-wrap"><table><thead><tr><th>Fee item</th><th>Due date</th><th>Amount</th><th>Paid</th><th>Balance</th></tr></thead><tbody>{feeRows.map(x=><tr key={x.fee.id}><td>{x.fee.item_name}</td><td>{x.fee.due_date||'—'}</td><td>{money(Number(x.fee.amount_kes))}</td><td>{money(x.paid)}</td><td><b>{money(x.balance)}</b></td></tr>)}</tbody></table></div>:<p className="muted">No fee charges have been set for this learner's class in the current academic year.</p>}
