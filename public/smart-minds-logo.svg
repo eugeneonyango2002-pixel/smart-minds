@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 725 224" role="img" aria-labelledby="title desc">
 <title id="title">Smart Minds</title>
-<desc id="desc">Smart Minds logo with a blue graduation cap, open book, golden star and tassel, green wordmark and the tagline Smarter School Management.</desc>
+<desc id="desc">Smart Minds logo in deep navy, orange and yellow, featuring a graduation cap, open book and star.</desc>
 <g transform="translate(22 12)">
-  <path d="M18 78 115 53 212 78 115 105Z" fill="#073A91"/>
-  <path d="M39 90v42c43 30 109 30 152 0V90l-76 20Z" fill="#0649A7"/>
-  <path d="M51 126c23 14 43 21 64 21s41-7 64-21v20c-43 29-85 29-128 0Z" fill="#063A8C"/>
-  <path d="M20 117c30-18 62-18 95 3 33-21 65-21 95-3v52c-34-16-66-13-95 13-29-26-61-29-95-13Z" fill="#0878D1"/>
-  <path d="M115 120v62" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+  <path d="M18 78 115 53 212 78 115 105Z" fill="#002C66"/>
+  <path d="M39 90v42c43 30 109 30 152 0V90l-76 20Z" fill="#FD840B"/>
+  <path d="M51 126c23 14 43 21 64 21s41-7 64-21v20c-43 29-85 29-128 0Z" fill="#002C66"/>
+  <path d="M20 117c30-18 62-18 95 3 33-21 65-21 95-3v52c-34-16-66-13-95 13-29-26-61-29-95-13Z" fill="#FD840B"/>
+  <path d="M115 120v62" stroke="#002C66" stroke-width="5" stroke-linecap="round"/>
   <path d="M29 129c28-12 54-8 78 9v31c-25-17-51-21-78-12Z" fill="#fff"/>
   <path d="M123 138c24-17 50-21 78-9v28c-27-9-53-5-78 12Z" fill="#fff"/>
-  <path d="M115 120c20-25 43-40 70-46" fill="none" stroke="#F5B313" stroke-width="7" stroke-linecap="round"/>
-  <path d="M185 74v42" stroke="#F5B313" stroke-width="5" stroke-linecap="round"/>
-  <path d="m185 116 12 18-12 12-12-12Z" fill="#F5B313"/>
-  <path d="m215 6 8 17 19 3-14 13 4 19-17-10-17 10 4-19-14-13 19-3Z" fill="#F5B313"/>
+  <path d="M115 120c20-25 43-40 70-46" fill="none" stroke="#FFD629" stroke-width="7" stroke-linecap="round"/>
+  <path d="M185 74v42" stroke="#FFD629" stroke-width="5" stroke-linecap="round"/>
+  <path d="m185 116 12 18-12 12-12-12Z" fill="#FFD629"/>
+  <path d="m215 6 8 17 19 3-14 13 4 19-17-10-17 10 4-19-14-13 19-3Z" fill="#FFD629"/>
 </g>
-<text x="265" y="98" font-family="Arial, Helvetica, sans-serif" font-size="75" font-weight="800" letter-spacing="-3" fill="#073A91">Smart</text>
-<text x="454" y="98" font-family="Arial, Helvetica, sans-serif" font-size="75" font-weight="800" letter-spacing="-3" fill="#159B32">Minds</text>
-<text x="270" y="137" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-style="italic" font-weight="700" fill="#073A91">...Smarter School Management</text>
-<path d="M35 184 C190 235 480 224 715 170" fill="none" stroke="#159B32" stroke-width="17" stroke-linecap="round"/>
-<path d="M35 184 C190 235 480 224 715 170" fill="none" stroke="#53D51B" stroke-width="5" stroke-linecap="round"/>
+<text x="265" y="98" font-family="Arial, Helvetica, sans-serif" font-size="75" font-weight="800" letter-spacing="-3" fill="#002C66">Smart</text>
+<text x="454" y="98" font-family="Arial, Helvetica, sans-serif" font-size="75" font-weight="800" letter-spacing="-3" fill="#FD840B">Minds</text>
+<text x="270" y="137" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-style="italic" font-weight="700" fill="#002C66">...Smarter School Management</text>
+<path d="M35 184 C190 235 480 224 715 170" fill="none" stroke="#FD840B" stroke-width="17" stroke-linecap="round"/>
+<path d="M35 184 C190 235 480 224 715 170" fill="none" stroke="#FFD629" stroke-width="5" stroke-linecap="round"/>
 </svg>
