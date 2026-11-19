@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smart-minds-shell-v1';
+const CACHE_NAME = 'smart-minds-shell-v2-brand-20261119';
 const APP_ROOT = '/smart-minds/';
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll([APP_ROOT, APP_ROOT + 'index.html'])).then(() => self.skipWaiting()));
