@@ -1150,3 +1150,22 @@ button,input,select,textarea{max-width:100%}
 .term-overall-feedback>b{display:block;margin-bottom:3px;color:#002C66;font-size:8px;letter-spacing:.45px}
 .term-overall-feedback p{margin:0}
 @media print{.term-overall-feedback{margin:2mm 0;padding:2mm 3mm;font-size:7pt}.term-overall-feedback>b{font-size:6.5pt}}
+
+
+/* Smart timetable print layout */
+@media print{
+  body *{visibility:hidden!important}
+  .timetable-manager,.timetable-manager *{visibility:visible!important}
+  .timetable-manager{position:absolute!important;inset:0!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important}
+  .timetable-manager .school-picker,
+  .timetable-manager form,
+  .timetable-manager .student-toolbar,
+  .timetable-manager .setup-automatic,
+  .timetable-manager .academic-head button,
+  .timetable-manager .panel:not(.student-panel),
+  .timetable-manager button{display:none!important}
+  .timetable-manager .table-wrap{overflow:visible!important}
+  .timetable-manager table{width:100%!important;font-size:9pt!important;border-collapse:collapse!important}
+  .timetable-manager th,.timetable-manager td{padding:5px!important;border:1px solid #bbb!important}
+  .timetable-manager h2,.timetable-manager h3{break-after:avoid}
+}
