@@ -87,67 +87,117 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
 
   async function buildAutomaticPreview(){
     setGenerationError('');setGenerationPreview([])
-    if(!schoolId||!filterYear||!generatorClass){setGenerationError('Select a school, academic year and class first.');return}
+    if(!schoolId||!filterYear){setGenerationError('Select a school and academic year first.');return}
     setGenerationBusy(true)
     try{
-      const selected=classes.find(c=>c.id===generatorClass)
-      const code=selected?levelCode(selected):''
-      if(!code)throw new Error('Automatic CBC timetable generation currently supports PP1–Grade 9. Senior-school timetable setup will be added separately.')
+      const supportedClasses=classes.filter(c=>Boolean(levelCode(c)))
+      if(!supportedClasses.length)throw new Error('No supported CBC classes were found. The generator supports PP1–Grade 9.')
+      const levelCodes=Array.from(new Set(supportedClasses.map(levelCode)))
       const results=await Promise.all([
-        supabase.from('cbc_timetable_profiles').select('*').eq('school_id',schoolId).eq('level_code',code).maybeSingle(),
-        supabase.from('class_subjects').select('id,class_id,subject_id,lessons_per_week,teacher_id,allow_double_lesson').eq('school_id',schoolId).eq('class_id',generatorClass),
+        supabase.from('cbc_timetable_profiles').select('*').eq('school_id',schoolId).in('level_code',levelCodes),
+        supabase.from('class_subjects').select('id,class_id,subject_id,lessons_per_week,teacher_id,allow_double_lesson').eq('school_id',schoolId),
         supabase.from('subjects').select('id,name').eq('school_id',schoolId),
-        supabase.from('timetable_entries').select('id,teacher_id,day_of_week,start_time,end_time,class_id,term_id').eq('school_id',schoolId).eq('academic_year_id',filterYear)
+        supabase.from('timetable_entries').select('id,teacher_id,day_of_week,start_time,end_time,class_id,term_id,academic_year_id').eq('school_id',schoolId).eq('academic_year_id',filterYear)
       ])
       const [profileResult,linkResult,subjectResult,existingResult]=results
       if(profileResult.error)throw profileResult.error
       if(linkResult.error)throw linkResult.error
       if(subjectResult.error)throw subjectResult.error
       if(existingResult.error)throw existingResult.error
-      const profile=profileResult.data
-      if(!profile)throw new Error('No timetable profile exists for this education level. Run the CBC timetable setup migration first.')
-      const allocations=(linkResult.data||[]).filter((x:any)=>Number(x.lessons_per_week)>0).map((x:any)=>({...x,subjectName:(subjectResult.data||[]).find((s:any)=>s.id===x.subject_id)?.name||'Subject',remaining:Number(x.lessons_per_week)})).sort((a:any,b:any)=>b.remaining-a.remaining)
-      if(!allocations.length)throw new Error('No weekly lesson allocations found. Set lessons per week for this class in the academic subject setup first.')
-      const requested=allocations.reduce((sum:number,x:any)=>sum+x.remaining,0)
-      const slots:any[]=[]
-      for(let day=1;day<=5;day++){
-        let cursor=toMinutes(profile.lesson_start_time)
-        for(let period=1;period<=Number(profile.lessons_per_day);period++){
-          const start=cursor,end=start+Number(profile.lesson_duration_minutes)
-          if(end>toMinutes(profile.school_end_time))break
-          slots.push({day_of_week:day,start_time:toClock(start),end_time:toClock(end),period})
-          cursor=end
-          if(period===Number(profile.first_break_after_period))cursor+=Number(profile.first_break_minutes)
-          if(period===Number(profile.second_break_after_period))cursor+=Number(profile.second_break_minutes)
-          if(profile.lunch_after_period&&period===Number(profile.lunch_after_period))cursor+=Number(profile.lunch_minutes)
+      const profiles=profileResult.data||[]
+      const profileByLevel=new Map(profiles.map((p:any)=>[p.level_code,p]))
+      const subjectRows=subjectResult.data||[]
+      const allLinks=linkResult.data||[]
+      const targetTerm=(filterTerm==='all'||filterTerm==='none')?null:filterTerm
+      const existing=(existingResult.data||[]).filter((x:any)=>filterTerm==='all'||(filterTerm==='none'?!x.term_id:x.term_id===targetTerm))
+      if(existing.length)throw new Error('There are already timetable lessons saved for this academic year/term. Remove the existing timetable before generating a fresh whole-school timetable. No existing lessons have been changed.')
+      const classPlans=supportedClasses.map(classRow=>{
+        const code=levelCode(classRow)
+        const profile:any=profileByLevel.get(code)
+        const allocations=allLinks.filter((x:any)=>x.class_id===classRow.id&&Number(x.lessons_per_week)>0).map((x:any)=>({...x,subjectName:subjectRows.find((s:any)=>s.id===x.subject_id)?.name||'Subject',remaining:Number(x.lessons_per_week),dailyCounts:[0,0,0,0,0]}))
+        return {classRow,code,profile,allocations,slots:[] as any[]}
+      }).filter(plan=>plan.allocations.length>0)
+      const missingProfiles=classPlans.filter(plan=>!plan.profile).map(plan=>plan.classRow.name+' ('+plan.code+')')
+      if(missingProfiles.length)throw new Error('Missing CBC timetable profiles for: '+missingProfiles.join(', ')+'. Complete the CBC timetable setup before generating.')
+      if(!classPlans.length)throw new Error('No weekly subject allocations found in the supported classes. Allocate lessons and assign teachers first.')
+      const noTeacher=classPlans.flatMap(plan=>plan.allocations.filter((x:any)=>!x.teacher_id).map((x:any)=>plan.classRow.name+' — '+x.subjectName))
+      if(noTeacher.length)throw new Error('Assign a teacher to every allocated subject before generating the whole-school timetable. Missing: '+noTeacher.slice(0,12).join('; ')+(noTeacher.length>12?'…':''))
+      for(const plan of classPlans){
+        const requested=plan.allocations.reduce((sum:number,x:any)=>sum+x.remaining,0)
+        const profile=plan.profile
+        for(let day=1;day<=5;day++){
+          let cursor=toMinutes(profile.lesson_start_time)
+          for(let period=1;period<=Number(profile.lessons_per_day);period++){
+            const start=cursor,end=start+Number(profile.lesson_duration_minutes)
+            if(end>toMinutes(profile.school_end_time))break
+            plan.slots.push({class_id:plan.classRow.id,class_name:plan.classRow.name,day_of_week:day,start_time:toClock(start),end_time:toClock(end),period})
+            cursor=end
+            if(period===Number(profile.first_break_after_period))cursor+=Number(profile.first_break_minutes)
+            if(period===Number(profile.second_break_after_period))cursor+=Number(profile.second_break_minutes)
+            if(profile.lunch_after_period&&period===Number(profile.lunch_after_period))cursor+=Number(profile.lunch_minutes)
+          }
+        }
+        if(requested>plan.slots.length)throw new Error(plan.classRow.name+' requires '+requested+' lessons per week, but its CBC profile provides '+plan.slots.length+' periods. Adjust its subject allocations or timetable profile.')
+      }
+      const events=classPlans.flatMap(plan=>plan.slots.map((slot:any)=>({...slot,plan}))).sort((a:any,b:any)=>a.day_of_week-b.day_of_week||a.start_time.localeCompare(b.start_time)||a.class_name.localeCompare(b.class_name))
+      const preview:any[]=[]
+      const usedSlots=new Set<string>()
+      const overlap=(a:any,b:any)=>a.day_of_week===b.day_of_week&&a.start_time<b.end_time&&a.end_time>b.start_time
+      const teacherFree=(teacherId:string,slots:any[])=>slots.every(slot=>!existing.some((x:any)=>x.teacher_id===teacherId&&overlap(x,slot))&&!preview.some((x:any)=>x.teacher_id===teacherId&&overlap(x,slot)))
+      const slotKey=(slot:any)=>slot.class_id+'|'+slot.day_of_week+'|'+slot.start_time
+      const teacherDemand=new Map<string,number>()
+      classPlans.forEach(plan=>plan.allocations.forEach((x:any)=>teacherDemand.set(x.teacher_id,(teacherDemand.get(x.teacher_id)||0)+x.remaining)))
+      events.sort((a:any,b:any)=>a.day_of_week-b.day_of_week||a.start_time.localeCompare(b.start_time)||Math.max(...b.plan.allocations.map((x:any)=>teacherDemand.get(x.teacher_id)||0))-Math.max(...a.plan.allocations.map((x:any)=>teacherDemand.get(x.teacher_id)||0))||a.class_name.localeCompare(b.class_name))
+      for(const slot of events){
+        if(usedSlots.has(slotKey(slot)))continue
+        const plan=slot.plan
+        const sameDaySlots=plan.slots.filter((x:any)=>x.day_of_week===slot.day_of_week)
+        const nextSlot=sameDaySlots.find((x:any)=>x.period===slot.period+1)
+        const candidates=plan.allocations.filter((x:any)=>{
+          const dailyLimit=Math.ceil(Number(x.lessons_per_week)/5)
+          if(x.remaining<1||x.dailyCounts[slot.day_of_week-1]>=dailyLimit)return false
+          if(!teacherFree(x.teacher_id,[slot]))return false
+          const prior=preview.find((o:any)=>o.class_id===slot.class_id&&o.subject_id===x.subject_id&&o.day_of_week===slot.day_of_week&&toMinutes(o.end_time)===toMinutes(slot.start_time))
+          if(prior&&!x.allow_double_lesson)return false
+          return true
+        }).sort((a:any,b:any)=>{
+          const targetA=Number(a.lessons_per_week)/5,targetB=Number(b.lessons_per_week)/5
+          const balanceA=a.dailyCounts[slot.day_of_week-1]/Math.max(1,targetA)
+          const balanceB=b.dailyCounts[slot.day_of_week-1]/Math.max(1,targetB)
+          const remainingA=a.remaining/Math.max(1,Number(a.lessons_per_week))
+          const remainingB=b.remaining/Math.max(1,Number(b.lessons_per_week))
+          const pairA=Boolean(a.allow_double_lesson&&a.remaining>=2&&nextSlot&&toMinutes(slot.end_time)===toMinutes(nextSlot.start_time)&&teacherFree(a.teacher_id,[slot,nextSlot]))
+          const pairB=Boolean(b.allow_double_lesson&&b.remaining>=2&&nextSlot&&toMinutes(slot.end_time)===toMinutes(nextSlot.start_time)&&teacherFree(b.teacher_id,[slot,nextSlot]))
+          return Number(pairB)-Number(pairA)||balanceA-balanceB||remainingB-remainingA
+        })
+        const chosen=candidates[0]
+        if(!chosen)continue
+        const makeEntry=(target:any)=>({school_id:schoolId,academic_year_id:filterYear,term_id:targetTerm,class_id:target.class_id,stream_id:null,subject_id:chosen.subject_id,teacher_id:chosen.teacher_id,day_of_week:target.day_of_week,start_time:target.start_time,end_time:target.end_time,room:null,lesson_notes:'Automatically generated CBC/CBE whole-school timetable',subject_name:chosen.subjectName,class_name:target.class_name,period:target.period})
+        preview.push(makeEntry(slot));chosen.remaining--;chosen.dailyCounts[slot.day_of_week-1]++;usedSlots.add(slotKey(slot))
+        if(chosen.allow_double_lesson&&chosen.remaining>0&&nextSlot&&toMinutes(slot.end_time)===toMinutes(nextSlot.start_time)){
+          const dailyLimit=Math.ceil(Number(chosen.lessons_per_week)/5)
+          if(chosen.dailyCounts[slot.day_of_week-1]<dailyLimit&&teacherFree(chosen.teacher_id,[nextSlot])){
+            preview.push(makeEntry(nextSlot));chosen.remaining--;chosen.dailyCounts[slot.day_of_week-1]++;usedSlots.add(slotKey(nextSlot))
+          }
         }
       }
-      if(requested>slots.length)throw new Error('This class requires '+requested+' lessons per week, but the current timetable profile provides '+slots.length+' periods. Adjust the allocations or timetable profile.')
-      const occupied=(existingResult.data||[]).filter((x:any)=>x.class_id!==generatorClass&&(filterTerm==='all'||(filterTerm==='none'?!x.term_id:x.term_id===filterTerm)))
-      const preview:any[]=[]
-      for(const slot of slots){
-        if(!allocations.some((x:any)=>x.remaining>0))break
-        const eligible=(x:any,allowAdjacent:boolean)=>{const sameDay=preview.filter((o:any)=>o.subject_id===x.subject_id&&o.day_of_week===slot.day_of_week);const dailyLimit=Math.ceil(Number(x.lessons_per_week)/5);const separated=allowAdjacent||Boolean(x.allow_double_lesson)||!sameDay.some((o:any)=>Math.abs(Number(o.period)-Number(slot.period))===1);return x.remaining>0&&sameDay.length<dailyLimit&&separated&&(!x.teacher_id||!occupied.some((o:any)=>o.teacher_id===x.teacher_id&&o.day_of_week===slot.day_of_week&&o.start_time<slot.end_time&&o.end_time>slot.start_time))&&(!x.teacher_id||!preview.some((o:any)=>o.teacher_id===x.teacher_id&&o.day_of_week===slot.day_of_week&&o.start_time<slot.end_time&&o.end_time>slot.start_time))};const chosen=allocations.find((x:any)=>eligible(x,false))||allocations.find((x:any)=>eligible(x,true))
-        if(!chosen)continue
-        preview.push({school_id:schoolId,academic_year_id:filterYear,term_id:filterTerm==='all'||filterTerm==='none'?null:filterTerm,class_id:generatorClass,stream_id:null,subject_id:chosen.subject_id,teacher_id:chosen.teacher_id||null,day_of_week:slot.day_of_week,start_time:slot.start_time,end_time:slot.end_time,room:null,lesson_notes:'Automatically generated weekly lesson',subject_name:chosen.subjectName,period:slot.period})
-        chosen.remaining--
-      }
-      const missing=allocations.filter((x:any)=>x.remaining>0).map((x:any)=>x.subjectName+': '+x.remaining)
-      if(missing.length)throw new Error('Could not place every lesson without conflicts. Unscheduled lessons: '+missing.join(', ')+'. Check teacher assignments and timetable capacity.')
+      const missing=classPlans.flatMap(plan=>plan.allocations.filter((x:any)=>x.remaining>0).map((x:any)=>plan.classRow.name+' — '+x.subjectName+': '+x.remaining))
+      if(missing.length)throw new Error('The whole-school timetable could not place every lesson without clashes. Unscheduled: '+missing.slice(0,16).join('; ')+(missing.length>16?'…':'')+'. Check teacher assignments, weekly allocations and timetable capacity.')
+      preview.sort((a:any,b:any)=>a.day_of_week-b.day_of_week||a.start_time.localeCompare(b.start_time)||a.class_name.localeCompare(b.class_name))
       setGenerationPreview(preview)
-    }catch(e){setGenerationError(e instanceof Error?e.message:'Could not generate a timetable preview.')}
+    }catch(e){setGenerationError(e instanceof Error?e.message:'Could not generate a whole-school timetable preview.')}
     finally{setGenerationBusy(false)}
   }
 
   async function saveGeneratedTimetable(){
     if(!generationPreview.length)return
-    const current=entries.filter(x=>x.academic_year_id===filterYear&&x.class_id===generatorClass&&(filterTerm==='all'||(filterTerm==='none'?!x.term_id:x.term_id===filterTerm)))
-    if(current.length){setGenerationError('This class already has lessons for the selected year/term. Remove those lessons first. Existing lessons have not been changed.');return}
+    const current=entries.filter(x=>x.academic_year_id===filterYear&&(filterTerm==='all'||(filterTerm==='none'?!x.term_id:x.term_id===filterTerm)))
+    if(current.length){setGenerationError('This academic year/term already contains timetable lessons. Remove the existing timetable first. No lessons have been changed.');return}
     setGenerationBusy(true);setGenerationError('')
-    const payload=generationPreview.map(({subject_name,period,...entry})=>entry)
+    const payload=generationPreview.map(({subject_name,class_name,period,...entry})=>entry)
     const {error}=await supabase.from('timetable_entries').insert(payload)
     if(error)setGenerationError(error.message)
-    else{setNotice('Automatic timetable created with '+payload.length+' lessons.');setGenerationPreview([]);await load()}
+    else{setNotice('Whole-school CBC timetable created with '+payload.length+' lessons across '+new Set(payload.map((x:any)=>x.class_id)).size+' classes.');setGenerationPreview([]);await load()}
     setGenerationBusy(false)
   }
 
@@ -199,10 +249,10 @@ export default function TimetableManager({ schools }: { schools: School[] }) {
       <label className="wide">Lesson notes<input value={form.lesson_notes} onChange={e=>setForm(v=>({...v,lesson_notes:e.target.value}))} placeholder="Optional notes"/></label>
       <button className="primary wide" disabled={busy||!years.length||!classes.length||!subjects.length}>{busy?'Saving…':'Add lesson to timetable'}</button>
     </form>
-    <div className="setup-automatic"><div><b>Automatic timetable generator</b><p>Build a weekly CBC/CBE timetable from each class's subject allocations and assigned teachers. Teacher clashes are checked before saving.</p></div><div style={{display:'grid',gap:'.5rem',minWidth:'min(100%,260px)'}}><label>Class<select value={generatorClass} onChange={e=>{setGeneratorClass(e.target.value);setGenerationPreview([]);setGenerationError('')}}>{classes.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><button className="secondary" type="button" disabled={generationBusy||!filterYear||!generatorClass} onClick={()=>void buildAutomaticPreview()}>{generationBusy?'Preparing…':'Generate preview'}</button></div></div>
+    <div className="setup-automatic"><div><b>Whole-school CBC timetable generator</b><p>Generate one coordinated timetable for all configured PP1–Grade 9 classes. Teachers are checked across every class to prevent clashes; daily lesson distribution and permitted double lessons are balanced automatically.</p></div><div style={{display:'grid',gap:'.5rem',minWidth:'min(100%,260px)'}}><label>Class for subject allocation setup<select value={generatorClass} onChange={e=>{setGeneratorClass(e.target.value);setGenerationPreview([]);setGenerationError('')}}>{classes.filter(x=>Boolean(levelCode(x))).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><button className="secondary" type="button" disabled={generationBusy||!filterYear||!classes.some(x=>Boolean(levelCode(x)))} onClick={()=>void buildAutomaticPreview()}>{generationBusy?'Preparing whole school…':'Generate whole-school preview'}</button></div></div>
     {generatorClass&&<div className="panel" style={{marginTop:12}}><h3>Weekly subject allocations and teachers</h3><p className="muted">Set how many lessons each subject needs per week and assign its teacher before generating the timetable.</p><div style={{display:'flex',gap:16,flexWrap:'wrap',margin:'10px 0',padding:12,borderRadius:10,background:'var(--surface-muted,#f4f6f8)'}}><div><small className="muted">Allocated lessons per week</small><div style={{fontSize:22,fontWeight:700}}>{allocatedLessons}</div></div><div><small className="muted">Available periods per week</small><div style={{fontSize:22,fontWeight:700}}>{generatorProfile?availablePeriods:'Loading…'}</div></div><div><small className="muted">Remaining capacity</small><div style={{fontSize:22,fontWeight:700}}>{generatorProfile?availablePeriods-allocatedLessons:'—'}</div></div></div>{generatorProfile&&allocatedLessons>availablePeriods&&<p className="alert error">Your subjects require {allocatedLessons} lessons, but this timetable profile provides only {availablePeriods} periods. Reduce the weekly allocations or increase the available periods.</p>}{!generatorProfile&&generatorClass&&<p className="muted">Timetable capacity profile is not available for this class level yet.</p>}<div className="table-wrap"><table><thead><tr><th>Subject</th><th>Lessons per week</th><th>Assigned teacher</th><th>Save</th></tr></thead><tbody>{classSubjectLinks.filter(link=>link.class_id===generatorClass).map(link=><tr key={link.id}><td>{label(link.subject_id,subjects)}</td><td><input aria-label="Lessons per week" type="number" min="1" max="15" defaultValue={link.lessons_per_week||''} id={'lessons-'+link.id}/></td><td><select aria-label="Assigned teacher" defaultValue={link.teacher_id||''} id={'teacher-'+link.id}><option value="">Not assigned</option>{staff.filter(x=>x.staff_role==='teacher').map(x=><option key={x.id} value={x.id}>{staffName(x)}</option>)}</select></td><td><button className="secondary" type="button" onClick={()=>{const lessons=Number((document.getElementById('lessons-'+link.id) as HTMLInputElement)?.value);const teacher=(document.getElementById('teacher-'+link.id) as HTMLSelectElement)?.value||'';void saveClassAllocation(link.id,lessons,teacher)}}>Save</button></td></tr>)}</tbody></table></div>{classSubjectLinks.filter(link=>link.class_id===generatorClass).length===0&&<p className="muted">No subjects are linked to this class yet. Add class subjects in Academic structure first.</p>}</div>}
     {generationError&&<p className="alert error"><XCircle/>{generationError}</p>}
-    {generationPreview.length>0&&<div className="panel" style={{marginTop:12}}><div className="academic-head"><div><h3>Generated timetable preview</h3><p className="muted">{generationPreview.length} lessons. Review before saving.</p></div><button className="primary" type="button" disabled={generationBusy} onClick={()=>void saveGeneratedTimetable()}>{generationBusy?'Saving…':'Save timetable'}</button></div><div className="table-wrap"><table><thead><tr><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th></tr></thead><tbody>{generationPreview.map((x,i)=><tr key={i}><td>{days.find(d=>d.id===x.day_of_week)?.name}</td><td>{x.start_time}–{x.end_time}</td><td>{x.subject_name}</td><td>{staffName(staff.find(t=>t.id===x.teacher_id)||{})||'Not assigned'}</td></tr>)}</tbody></table></div></div>}
+    {generationPreview.length>0&&<div className="panel" style={{marginTop:12}}><div className="academic-head"><div><h3>Whole-school timetable preview</h3><p className="muted">{generationPreview.length} lessons across {new Set(generationPreview.map(x=>x.class_id)).size} classes. Review the coordinated timetable before saving.</p></div><button className="primary" type="button" disabled={generationBusy} onClick={()=>void saveGeneratedTimetable()}>{generationBusy?'Saving…':'Save timetable'}</button></div><div className="table-wrap"><table><thead><tr><th>Class</th><th>Day</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Lesson</th></tr></thead><tbody>{generationPreview.map((x,i)=><tr key={i}><td>{x.class_name}</td><td>{days.find(d=>d.id===x.day_of_week)?.name}</td><td>{x.start_time}–{x.end_time}</td><td>{x.subject_name}</td><td>{staffName(staff.find(t=>t.id===x.teacher_id)||{})||'Not assigned'}</td><td>{x.lesson_notes?.includes('double')?'Double':'Single'}</td></tr>)}</tbody></table></div></div>}
     <div className="academic-head no-print"><h3>Weekly timetable</h3><button className="secondary" type="button" onClick={()=>window.print()}>Print landscape timetable</button></div>
     <div className="student-toolbar no-print">
       <label>Academic year<select value={filterYear} onChange={e=>setFilterYear(e.target.value)}><option value="">All years</option>{years.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
