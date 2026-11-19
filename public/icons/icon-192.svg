@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
 <title>Smart Minds app icon</title>
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0757c9"/><stop offset="1" stop-color="#06245e"/></linearGradient><linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe36c"/><stop offset="1" stop-color="#efa900"/></linearGradient></defs>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#002C66"/><stop offset="1" stop-color="#001F49"/></linearGradient></defs>
 <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-<circle cx="256" cy="240" r="202" fill="#fff" opacity=".06"/>
-<path d="m256 82 184 62-184 63-184-63Z" fill="#fff" stroke="#f6bd28" stroke-width="9" stroke-linejoin="round"/>
-<path d="M105 166v65c90 48 212 48 302 0v-65l-151 51Z" fill="#0b4a9c"/>
-<path d="M104 268c57-31 107-22 152 18 45-40 95-49 152-18v118c-59-28-110-20-152 25-42-45-93-53-152-25Z" fill="#fff" stroke="#d9eaff" stroke-width="10" stroke-linejoin="round"/>
-<path d="M256 286v143" stroke="#0b4a9c" stroke-width="12" stroke-linecap="round"/>
-<path d="M122 293c45-18 82-11 116 15v76c-35-26-72-33-116-19Z" fill="#eaf4ff"/>
-<path d="M390 293c-45-18-82-11-116 15v76c35-26 72-33 116-19Z" fill="#fff4d1"/>
-<path d="M256 201c25-34 50-53 78-64" fill="none" stroke="url(#gold)" stroke-width="12" stroke-linecap="round"/>
-<path d="M334 137v75" stroke="#f5bd28" stroke-width="10" stroke-linecap="round"/>
-<path d="m334 207 19 27-19 18-19-18Z" fill="url(#gold)"/>
-<path d="m390 60 14 29 32 5-23 22 6 32-29-16-29 16 6-32-23-22 32-5Z" fill="url(#gold)"/>
+<circle cx="256" cy="240" r="202" fill="#fff" opacity=".05"/>
+<path d="m256 82 184 62-184 63-184-63Z" fill="#FD840B" stroke="#FFD629" stroke-width="9" stroke-linejoin="round"/>
+<path d="M105 166v65c90 48 212 48 302 0v-65l-151 51Z" fill="#FD840B"/>
+<path d="M104 268c57-31 107-22 152 18 45-40 95-49 152-18v118c-59-28-110-20-152 25-42-45-93-53-152-25Z" fill="#fff" stroke="#FFD629" stroke-width="10" stroke-linejoin="round"/>
+<path d="M256 286v143" stroke="#002C66" stroke-width="12" stroke-linecap="round"/>
+<path d="M122 293c45-18 82-11 116 15v76c-35-26-72-33-116-19Z" fill="#fff5e9"/>
+<path d="M390 293c-45-18-82-11-116 15v76c35-26 72-33 116-19Z" fill="#fff"/>
+<path d="M256 201c25-34 50-53 78-64" fill="none" stroke="#FFD629" stroke-width="12" stroke-linecap="round"/>
+<path d="M334 137v75" stroke="#FFD629" stroke-width="10" stroke-linecap="round"/>
+<path d="m334 207 19 27-19 18-19-18Z" fill="#FD840B"/>
+<path d="m390 60 14 29 32 5-23 22 6 32-29-16-29 16 6-32-23-22 32-5Z" fill="#FFD629"/>
 </svg>
