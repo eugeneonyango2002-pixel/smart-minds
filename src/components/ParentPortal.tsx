@@ -10,6 +10,7 @@ type Exam = { id: string; name: string; exam_date: string | null; class_id: stri
 type FeeCharge = { id: string; class_id: string; academic_year_id: string; term_id: string | null; item_name: string; amount_kes: number; due_date: string | null }
 type AcademicYear = { id: string; name: string; is_current: boolean }
 type Announcement = { id: string; title: string; message: string; publish_at: string }
+type ParentNotification = { id: string; title: string; message: string; notification_type: string; created_at: string; read_at: string | null }
 
 export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { account: Account; onSignOut: () => void; onSwitchToAdmin?: () => void }) {
   const [learners, setLearners] = useState<Learner[]>([])
@@ -18,6 +19,7 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
   const [feeCharges, setFeeCharges] = useState<FeeCharge[]>([])
   const [currentYear, setCurrentYear] = useState<AcademicYear | null>(null)
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [notifications, setNotifications] = useState<ParentNotification[]>([])
   const [exams, setExams] = useState<Exam[]>([])
   const [results, setResults] = useState<any[]>([])
   const [classes, setClasses] = useState<{id:string;name:string}[]>([])
@@ -31,10 +33,11 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
     let cancelled = false
     async function load() {
       setLoading(true); setError('')
-      const [schoolResult, linkResult, announcementResult] = await Promise.all([
+      const [schoolResult, linkResult, announcementResult, notificationResult] = await Promise.all([
         supabase.from('schools').select('name').eq('id', account.school_id).maybeSingle(),
         supabase.from('parent_students').select('student_id').eq('parent_account_id', account.id),
-        supabase.from('school_announcements').select('id,title,message,publish_at').eq('school_id', account.school_id).eq('status','published').lte('publish_at', new Date().toISOString()).order('publish_at',{ascending:false}).limit(30)
+        supabase.from('school_announcements').select('id,title,message,publish_at').eq('school_id', account.school_id).eq('status','published').lte('publish_at', new Date().toISOString()).order('publish_at',{ascending:false}).limit(30),
+        supabase.from('parent_notifications').select('id,title,message,notification_type,created_at,read_at').eq('parent_account_id',account.id).order('created_at',{ascending:false}).limit(50)
       ])
       if (linkResult.error) { if (!cancelled) setError(linkResult.error.message); setLoading(false); return }
       const ids = (linkResult.data || []).map(x => x.student_id)
@@ -46,7 +49,7 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
         supabase.from('classes').select('id,name').eq('school_id', account.school_id),
         supabase.from('academic_years').select('id,name,is_current').eq('school_id', account.school_id).eq('is_current', true).maybeSingle()
       ])
-      const failedRead = [schoolResult, announcementResult, studentResult, attendanceResult, paymentResult, classResult, yearResult].find(x => x.error)
+      const failedRead = [schoolResult, announcementResult, notificationResult, studentResult, attendanceResult, paymentResult, classResult, yearResult].find(x => x.error)
       if (failedRead?.error) { if (!cancelled) setError(failedRead.error.message); setLoading(false); return }
       const kids = (studentResult.data || []) as Learner[]
       const classIds = [...new Set(kids.map(x => x.class_id).filter(Boolean))] as string[]
@@ -67,7 +70,7 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
       }
       if (!cancelled) {
         setSchoolName(schoolResult.data?.name || 'School')
-        setAnnouncements((announcementResult.data || []) as Announcement[])
+        setAnnouncements((announcementResult.data || []) as Announcement[]); setNotifications((notificationResult.data || []) as ParentNotification[])
         setLearners(kids); setAttendance((attendanceResult.data || []) as Attendance[])
         setPayments((paymentResult.data || []) as Payment[]); setClasses(classResult.data || [])
         setFeeCharges(chargeRows); setCurrentYear((yearResult.data || null) as AcademicYear | null)
@@ -106,6 +109,9 @@ export default function ParentPortal({ account, onSignOut, onSwitchToAdmin }: { 
           <article className="panel"><Wallet/><span>Payments recorded</span><b>KES {totalPaid.toLocaleString()}</b></article>
           <article className="panel"><BookOpen/><span>Published assessments</span><b>{new Set(learnerResults.map(x=>x.examination_id)).size}</b></article>
         </div>}
+        <section className="panel parent-section"><div className="panel-heading"><h2><Bell/> Notifications</h2><span>{notifications.filter(x=>!x.read_at).length} new</span></div>
+          {notifications.length ? <div className="parent-announcement-list">{notifications.map(item=><article className="parent-announcement" key={item.id}><small>{new Date(item.created_at).toLocaleString('en-KE')} · {item.notification_type==='exam_published'?'Examination':'Fee payment'}</small><h3>{item.title}</h3><p>{item.message}</p></article>)}</div> : <p className="muted">You will receive updates here when examination results are published or a fee payment is recorded.</p>}
+        </section>
         <section className="panel parent-section"><div className="panel-heading"><h2><Bell/> School announcements</h2><span>{announcements.length} updates</span></div>
           {announcements.length ? <div className="parent-announcement-list">{announcements.map(item=><article className="parent-announcement" key={item.id}><small>{new Date(item.publish_at).toLocaleString('en-KE')}</small><h3>{item.title}</h3><p>{item.message}</p></article>)}</div> : <p className="muted">There are no new school announcements.</p>}
         </section>
